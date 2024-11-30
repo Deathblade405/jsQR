@@ -1,115 +1,166 @@
 /* Global Styles */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Arial', sans-serif; /* Clean, professional font */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif; /* Clean, professional font */
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #2a2a2a; /* Dark grey background for professionalism */
+  color: #f0f0f0; /* Light text color for readability */
+  overflow: hidden;
+  padding: 20px;
+}
+
+h2 {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 20px;
+  color: #ffffff; /* White text color */
+  font-weight: 500;
+}
+
+/* Batch Number Input */
+.batch-number-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #555555; /* Darker grey border */
+  border-radius: 5px;
+  margin-bottom: 20px;
+  display: block;
+  margin: 0 auto;
+  background-color: #333333; /* Dark background for input */
+  color: #f0f0f0; /* Light text color for input */
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.batch-number-input:focus {
+  outline: none;
+  border-color: #4c9bff; /* Subtle blue border when focused */
+  box-shadow: 0 0 12px rgba(76, 155, 255, 0.3); /* Light blue glow on focus */
+}
+
+/* QR Scanner Container */
+.scanner-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.6); /* Transparent dark background */
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); /* Soft shadow around the scanner */
+  text-align: center;
+  overflow: hidden;
+  border: 2px solid #444444; /* Dark grey border */
+}
+
+/* Video Element */
+video {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid #444444; /* Border for the video element */
+}
+
+/* Zoom Control */
+.zoom-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px auto 20px;
+  color: #f0f0f0;
+}
+
+.zoom-control label {
+  margin-right: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.zoom-control input[type='range'] {
+  width: 200px;
+  appearance: none;
+  height: 6px;
+  background: #444; /* Slider background */
+  border-radius: 5px;
+  outline: none;
+  transition: background 0.3s ease;
+}
+
+.zoom-control input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  background: #4c9bff; /* Thumb color */
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.zoom-control input[type='range']::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  background: #4c9bff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.zoom-control input[type='range']:hover::-webkit-slider-thumb {
+  background: #78baff; /* Brighter thumb on hover */
+}
+
+/* Loading Text */
+p {
+  font-size: 1.2rem;
+  margin-top: 10px;
+  color: #f0f0f0;
+  animation: fadeIn 1.5s infinite alternate;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0.6;
   }
-  
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 600px) {
   body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background: #2a2a2a; /* Dark grey background for professionalism */
-    color: #f0f0f0; /* Light text color for readability */
-    overflow: hidden;
-    padding: 20px;
+    padding: 10px;
   }
-  
-  h2 {
-    font-size: 2rem;
-    text-align: center;
-    margin-bottom: 20px;
-    color: #ffffff; /* White text color */
-    font-weight: 500;
-  }
-  
-  /* Batch Number Input */
-  .batch-number-input {
-    width: 100%;
-    max-width: 400px;
-    padding: 12px;
-    font-size: 1rem;
-    border: 1px solid #555555; /* Darker grey border */
-    border-radius: 5px;
-    margin-bottom: 20px;
-    display: block;
-    margin: 0 auto;
-    background-color: #333333; /* Dark background for input */
-    color: #f0f0f0; /* Light text color for input */
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .batch-number-input:focus {
-    outline: none;
-    border-color: #4c9bff; /* Subtle blue border when focused */
-    box-shadow: 0 0 12px rgba(76, 155, 255, 0.3); /* Light blue glow on focus */
-  }
-  
-  /* QR Scanner Container */
+
   .scanner-container {
-    position: relative;
     width: 100%;
-    max-width: 600px;
-    padding: 20px;
-    background-color: rgba(0, 0, 0, 0.6); /* Transparent dark background */
-    border-radius: 10px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); /* Soft shadow around the scanner */
-    text-align: center;
-    overflow: hidden;
-    border: 2px solid #444444; /* Dark grey border */
+    padding: 15px;
   }
-  
-  /* Video Element */
+
+  h2 {
+    font-size: 1.8rem;
+  }
+
+  .batch-number-input {
+    max-width: 100%;
+    padding: 10px;
+  }
+
   video {
     width: 100%;
     height: auto;
-    border-radius: 8px;
-    border: 2px solid #444444; /* Border for the video element */
   }
-  
-  /* Loading Text */
-  p {
-    font-size: 1.2rem;
-    margin-top: 10px;
-    color: #f0f0f0;
-    animation: fadeIn 1.5s infinite alternate;
+
+  .zoom-control input[type='range'] {
+    width: 150px; /* Adjust width for smaller screens */
   }
-  
-  @keyframes fadeIn {
-    0% {
-      opacity: 0.6;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
-  
-  /* Mobile Responsive Design */
-  @media (max-width: 600px) {
-    body {
-      padding: 10px;
-    }
-  
-    .scanner-container {
-      width: 100%;
-      padding: 15px;
-    }
-  
-    h2 {
-      font-size: 1.8rem;
-    }
-  
-    .batch-number-input {
-      max-width: 100%;
-      padding: 10px;
-    }
-  
-    video {
-      width: 100%;
-      height: auto;
-    }
-  }
-  
+}

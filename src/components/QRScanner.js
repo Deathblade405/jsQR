@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import './styles.css';
+
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [batchNumber, setBatchNumber] = useState('');
+  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   const videoRef = useRef(null); // Ref for video element
   const canvasRef = useRef(null); // Ref for canvas element
+  const streamRef = useRef(null); // Ref for the media stream
 
   useEffect(() => {
     const initScanner = async () => {
@@ -15,11 +18,12 @@ const QRScanner = () => {
           video: { facingMode: 'environment' }, // Use back camera on mobile
         });
 
+        streamRef.current = stream;
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
 
-        // Start scanning when the camera feed is available
         setIsScanning(true);
       } catch (err) {
         console.error('Error accessing camera:', err);
@@ -29,17 +33,27 @@ const QRScanner = () => {
 
     initScanner();
 
-    // Cleanup when the component is unmounted
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject;
-        const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop());
+      if (streamRef.current) {
+        const tracks = streamRef.current.getTracks();
+        tracks.forEach((track) => track.stop());
       }
     };
   }, []);
 
-  // Function to decode QR code from the video feed
+  const adjustZoom = async (zoom) => {
+    setZoomLevel(zoom); // Update state for UI
+
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      const capabilities = track.getCapabilities();
+      if (capabilities.zoom) {
+        const constraints = { advanced: [{ zoom }] };
+        await track.applyConstraints(constraints);
+      }
+    }
+  };
+
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -47,39 +61,32 @@ const QRScanner = () => {
     const context = canvas.getContext('2d');
     const video = videoRef.current;
 
-    // Check if the video has valid dimensions before proceeding
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      requestAnimationFrame(scanQRCode); // Keep scanning if video size is not available
+      requestAnimationFrame(scanQRCode);
       return;
     }
 
-    // Set canvas size to match the video feed
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw the current video frame on the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'dontInvert',
     });
 
-    // If a QR code is detected and it's not the ignored URL, redirect
     if (code) {
       const qrData = code.data;
       if (qrData !== 'https://scinovas.in/m') {
-        // Redirect to the QR code URL in a new tab
         window.open(qrData, '_blank');
-        setIsScanning(false); // Stop scanning once redirected
+        setIsScanning(false);
       }
     } else {
-      requestAnimationFrame(scanQRCode); // Keep scanning if no QR code is detected
+      requestAnimationFrame(scanQRCode);
     }
   };
 
-  // Start the scanning process when the video is playing
   useEffect(() => {
     if (isScanning) {
       requestAnimationFrame(scanQRCode);
@@ -97,6 +104,19 @@ const QRScanner = () => {
         onChange={(e) => setBatchNumber(e.target.value)}
         placeholder="Enter Batch Number"
       />
+      {/* Zoom Control */}
+      <div className="zoom-control">
+        <label htmlFor="zoom">Zoom:</label>
+        <input
+          id="zoom"
+          type="range"
+          min="1"
+          max="5"
+          step="0.1"
+          value={zoomLevel}
+          onChange={(e) => adjustZoom(Number(e.target.value))}
+        />
+      </div>
       {isScanning && <p>Scanning...</p>}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
