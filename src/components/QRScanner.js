@@ -4,29 +4,43 @@ import './styles.css';
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
-  const [batchNumber, setBatchNumber] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
-  const videoRef = useRef(null); // Ref for video element
-  const canvasRef = useRef(null); // Ref for canvas element
-  const streamRef = useRef(null); // Ref for the media stream
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [qrResult, setQrResult] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     const initScanner = async () => {
       try {
-        // Access the webcam (back camera for mobile)
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, // Use back camera on mobile
+          video: { facingMode: 'environment' },
         });
 
         streamRef.current = stream;
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
+
+        // Initialize zoom level if supported
+        if (capabilities.zoom) {
+          setZoomLevel(capabilities.zoom.min || 1);
+          track.applyConstraints({
+            advanced: [{ zoom: capabilities.zoom.min || 1 }],
+          });
         }
 
         setIsScanning(true);
+        scanQRCode(track, capabilities);
       } catch (err) {
         console.error('Error accessing camera:', err);
+        setErrorMessage('Failed to access the camera.');
         setIsScanning(false);
       }
     };
@@ -35,103 +49,97 @@ const QRScanner = () => {
 
     return () => {
       if (streamRef.current) {
-        const tracks = streamRef.current.getTracks();
-        tracks.forEach((track) => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
-  const adjustZoom = async (zoom) => {
-    setZoomLevel(zoom); // Update state for UI
-
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) {
-      const capabilities = track.getCapabilities();
-      if (capabilities.zoom) {
-        const constraints = { advanced: [{ zoom }] };
-        await track.applyConstraints(constraints);
-      }
-    }
-  };
-
-  const enhanceImageData = (imageData) => {
+  const preprocessImage = (imageData) => {
     const data = imageData.data;
+    const grayscaleThreshold = 128;
+
+    // Step 1: Adjust contrast and brightness
+    const contrastFactor = 1.5; // Increase contrast
+    const brightnessOffset = 20; // Increase brightness
+
     for (let i = 0; i < data.length; i += 4) {
-      const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
-      data[i] = data[i + 1] = data[i + 2] = brightness > 128 ? 255 : 0; // Thresholding for contrast
+      // Adjust RGB values
+      data[i] = Math.min(255, contrastFactor * data[i] + brightnessOffset); // Red
+      data[i + 1] = Math.min(255, contrastFactor * data[i + 1] + brightnessOffset); // Green
+      data[i + 2] = Math.min(255, contrastFactor * data[i + 2] + brightnessOffset); // Blue
     }
+
+    // Step 2: Convert to grayscale and binarize
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const binarized = gray >= grayscaleThreshold ? 255 : 0;
+
+      data[i] = binarized; // Red
+      data[i + 1] = binarized; // Green
+      data[i + 2] = binarized; // Blue
+    }
+
     return imageData;
   };
 
-  const scanQRCode = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+  const scanQRCode = (track, capabilities) => {
     const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
 
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      requestAnimationFrame(scanQRCode);
+    if (!ctx || !video) {
+      console.error('Canvas or video element is missing.');
       return;
     }
 
-    canvas.width = video.videoWidth * 2; // Increase resolution
-    canvas.height = video.videoHeight * 2;
+    const tick = () => {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-    context.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    imageData = enhanceImageData(imageData); // Improve contrast and reduce noise
+        // Preprocess image for better decoding
+        imageData = preprocessImage(imageData);
 
-    const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'both', // Try both normal and inverted images
-      errorCorrectionLevel: 'high',
-    });
-
-    if (code) {
-      const qrData = code.data;
-      if (qrData !== 'https://scinovas.in/m') {
-        window.open(qrData, '_blank');
-        setIsScanning(false);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+        if (code) {
+          setQrResult(code.data);
+          console.log('QR Code detected:', code.data);
+          setIsScanning(false);
+        } else {
+          console.log('QR Code not detected. Retrying...');
+          zoomAndRetry(track, capabilities, tick);
+        }
+      } else {
+        console.log('Video not ready. Retrying...');
+        zoomAndRetry(track, capabilities, tick);
       }
-    } else {
-      requestAnimationFrame(scanQRCode);
-    }
+    };
+    tick();
   };
 
-  useEffect(() => {
-    if (isScanning) {
-      requestAnimationFrame(scanQRCode);
-    }
-  }, [isScanning]);
+  const zoomAndRetry = (track, capabilities, callback) => {
+    setTimeout(() => {
+      if (capabilities.zoom && zoomLevel < (capabilities.zoom.max || 5)) {
+        const newZoomLevel = zoomLevel + 1;
+        setZoomLevel(newZoomLevel);
+        track.applyConstraints({
+          advanced: [{ zoom: newZoomLevel }],
+        });
+      }
+      requestAnimationFrame(callback);
+    }, 500);
+  };
 
   return (
     <div className="scanner-container">
       <h2>QR Code Scanner</h2>
-      {/* Batch Number Input */}
-      <input
-        type="text"
-        className="batch-number-input"
-        value={batchNumber}
-        onChange={(e) => setBatchNumber(e.target.value)}
-        placeholder="Enter Batch Number"
-      />
-      {/* Zoom Control */}
-      <div className="zoom-control">
-        <label htmlFor="zoom">Zoom:</label>
-        <input
-          id="zoom"
-          type="range"
-          min="1"
-          max="5"
-          step="0.1"
-          value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
-        />
-      </div>
-      {isScanning && <p>Scanning...</p>}
-      <video ref={videoRef} width="100%" height="auto" autoPlay></video>
+      {errorMessage && <p className="error">{errorMessage}</p>}
+      <p>{isScanning ? 'Scanning...' : 'Stopped'}</p>
+      <p>QR Result: {qrResult}</p>
+      <video ref={videoRef} autoPlay muted></video>
       <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
     </div>
   );
