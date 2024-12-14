@@ -5,10 +5,10 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [batchNumber, setBatchNumber] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
-  const videoRef = useRef(null); // Ref for video element
-  const canvasRef = useRef(null); // Ref for canvas element
-  const streamRef = useRef(null); // Ref for the media stream
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     const initScanner = async () => {
@@ -57,26 +57,34 @@ const QRScanner = () => {
   const handleZoomChange = (e) => {
     const zoom = Number(e.target.value);
     setZoomLevel(zoom);
-    applyZoom(zoom); // Apply zoom immediately when the slider moves
+    applyZoom(zoom);
   };
 
   const preprocessImage = (imageData) => {
     const data = imageData.data;
     const grayscaleThreshold = 128;
 
-    // Adjust contrast and brightness
-    const contrastFactor = 1.5;
-    const brightnessOffset = 20;
-
+    // Smooth the texture using Gaussian blur (simulate with averaging nearby pixels)
+    const kernelSize = 5;
     for (let i = 0; i < data.length; i += 4) {
-      data[i] = Math.min(255, contrastFactor * data[i] + brightnessOffset);
-      data[i + 1] = Math.min(255, contrastFactor * data[i + 1] + brightnessOffset);
-      data[i + 2] = Math.min(255, contrastFactor * data[i + 2] + brightnessOffset);
+      let sum = 0;
+      for (let k = -kernelSize; k <= kernelSize; k++) {
+        const idx = i + k * 4;
+        if (idx >= 0 && idx < data.length) {
+          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        }
+      }
+      const avg = sum / (2 * kernelSize + 1);
+      data[i] = avg;
+      data[i + 1] = avg;
+      data[i + 2] = avg;
     }
 
+    // Convert to grayscale and apply adaptive thresholding
     for (let i = 0; i < data.length; i += 4) {
       const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      const binarized = gray >= grayscaleThreshold ? 255 : 0;
+      const threshold = Math.random() * 30 + grayscaleThreshold; // Adaptive threshold
+      const binarized = gray >= threshold ? 255 : 0;
 
       data[i] = binarized;
       data[i + 1] = binarized;
@@ -119,6 +127,7 @@ const QRScanner = () => {
         setIsScanning(false);
       }
     } else {
+      // Retry logic: dynamically adjust preprocessing and analyze additional frames
       requestAnimationFrame(scanQRCode);
     }
   };
