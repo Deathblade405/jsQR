@@ -15,7 +15,7 @@ const QRScanner = () => {
       try {
         // Access the webcam (back camera for mobile)
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, // Use back camera on mobile
+          video: { facingMode: 'environment' },
         });
 
         streamRef.current = stream;
@@ -42,7 +42,7 @@ const QRScanner = () => {
   }, []);
 
   const adjustZoom = async (zoom) => {
-    setZoomLevel(zoom); // Update state for UI
+    setZoomLevel(zoom);
 
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
@@ -54,12 +54,30 @@ const QRScanner = () => {
     }
   };
 
-  const enhanceImageData = (imageData) => {
+  const preprocessImage = (imageData) => {
     const data = imageData.data;
+    const grayscaleThreshold = 128;
+
+    // Adjust contrast and brightness
+    const contrastFactor = 1.5; // Increase contrast
+    const brightnessOffset = 20; // Increase brightness
+
     for (let i = 0; i < data.length; i += 4) {
-      const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
-      data[i] = data[i + 1] = data[i + 2] = brightness > 128 ? 255 : 0; // Thresholding for contrast
+      data[i] = Math.min(255, contrastFactor * data[i] + brightnessOffset); // Red
+      data[i + 1] = Math.min(255, contrastFactor * data[i + 1] + brightnessOffset); // Green
+      data[i + 2] = Math.min(255, contrastFactor * data[i + 2] + brightnessOffset); // Blue
     }
+
+    // Convert to grayscale and binarize
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const binarized = gray >= grayscaleThreshold ? 255 : 0;
+
+      data[i] = binarized;
+      data[i + 1] = binarized;
+      data[i + 2] = binarized;
+    }
+
     return imageData;
   };
 
@@ -75,27 +93,35 @@ const QRScanner = () => {
       return;
     }
 
-    canvas.width = video.videoWidth * 2; // Increase resolution
-    canvas.height = video.videoHeight * 2;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    context.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    imageData = enhanceImageData(imageData); // Improve contrast and reduce noise
+    imageData = preprocessImage(imageData);
 
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'both', // Try both normal and inverted images
+      inversionAttempts: 'both',
       errorCorrectionLevel: 'high',
     });
 
     if (code) {
       const qrData = code.data;
       if (qrData !== 'https://scinovas.in/m') {
-        window.open(qrData, '_blank');
+        alert(`QR Code Scanned: ${qrData}`);
         setIsScanning(false);
       }
     } else {
+      // Retry with zoom logic
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (track) {
+        const capabilities = track.getCapabilities();
+        if (capabilities.zoom && zoomLevel < 5) {
+          adjustZoom(zoomLevel + 0.1);
+        }
+      }
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -109,7 +135,6 @@ const QRScanner = () => {
   return (
     <div className="scanner-container">
       <h2>QR Code Scanner</h2>
-      {/* Batch Number Input */}
       <input
         type="text"
         className="batch-number-input"
@@ -117,7 +142,6 @@ const QRScanner = () => {
         onChange={(e) => setBatchNumber(e.target.value)}
         placeholder="Enter Batch Number"
       />
-      {/* Zoom Control */}
       <div className="zoom-control">
         <label htmlFor="zoom">Zoom:</label>
         <input
