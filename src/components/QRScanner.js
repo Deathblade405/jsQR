@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
+import Tesseract from 'tesseract.js'; // Fallback OCR library
 import './styles.css';
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [batchNumber, setBatchNumber] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [errorMessage, setErrorMessage] = useState('');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -26,6 +28,7 @@ const QRScanner = () => {
         setIsScanning(true);
       } catch (err) {
         console.error('Error accessing camera:', err);
+        setErrorMessage('Failed to access the camera.');
         setIsScanning(false);
       }
     };
@@ -64,26 +67,32 @@ const QRScanner = () => {
     const data = imageData.data;
     const grayscaleThreshold = 128;
 
-    // Smooth the texture using Gaussian blur (simulate with averaging nearby pixels)
-    const kernelSize = 5;
-    for (let i = 0; i < data.length; i += 4) {
-      let sum = 0;
-      for (let k = -kernelSize; k <= kernelSize; k++) {
-        const idx = i + k * 4;
-        if (idx >= 0 && idx < data.length) {
-          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-        }
-      }
-      const avg = sum / (2 * kernelSize + 1);
-      data[i] = avg;
-      data[i + 1] = avg;
-      data[i + 2] = avg;
-    }
-
-    // Convert to grayscale and apply adaptive thresholding
+    // Histogram Equalization for Contrast Enhancement
+    const histogram = new Array(256).fill(0);
     for (let i = 0; i < data.length; i += 4) {
       const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      const threshold = Math.random() * 30 + grayscaleThreshold; // Adaptive threshold
+      histogram[Math.floor(gray)]++;
+    }
+
+    let cumulative = 0;
+    const equalizedHistogram = histogram.map((value) => {
+      cumulative += value;
+      return Math.round((cumulative / (imageData.width * imageData.height)) * 255);
+    });
+
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const equalized = equalizedHistogram[Math.floor(gray)];
+
+      data[i] = equalized;
+      data[i + 1] = equalized;
+      data[i + 2] = equalized;
+    }
+
+    // Binarization with Adaptive Thresholding
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i];
+      const threshold = Math.random() * 20 + grayscaleThreshold;
       const binarized = gray >= threshold ? 255 : 0;
 
       data[i] = binarized;
@@ -94,7 +103,15 @@ const QRScanner = () => {
     return imageData;
   };
 
-  const scanQRCode = () => {
+  const fallbackOCR = async (canvas) => {
+    const dataURL = canvas.toDataURL();
+    const result = await Tesseract.recognize(dataURL, 'eng', {
+      logger: (info) => console.log(info),
+    });
+    return result.data.text;
+  };
+
+  const scanQRCode = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -121,14 +138,18 @@ const QRScanner = () => {
     });
 
     if (code) {
-      const qrData = code.data;
-      if (qrData !== 'https://scinovas.in/m') {
-        alert(`QR Code Scanned: ${qrData}`);
-        setIsScanning(false);
-      }
+      alert(`QR Code Scanned: ${code.data}`);
+      setIsScanning(false);
     } else {
-      // Retry logic: dynamically adjust preprocessing and analyze additional frames
-      requestAnimationFrame(scanQRCode);
+      console.log('jsQR failed. Attempting OCR...');
+      const fallbackData = await fallbackOCR(canvas);
+      if (fallbackData) {
+        alert(`OCR Detected: ${fallbackData}`);
+        setIsScanning(false);
+      } else {
+        console.log('Retrying...');
+        requestAnimationFrame(scanQRCode);
+      }
     }
   };
 
@@ -141,6 +162,7 @@ const QRScanner = () => {
   return (
     <div className="scanner-container">
       <h2>QR Code Scanner</h2>
+      {errorMessage && <p className="error">{errorMessage}</p>}
       <input
         type="text"
         className="batch-number-input"
