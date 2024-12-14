@@ -54,6 +54,15 @@ const QRScanner = () => {
     }
   };
 
+  const enhanceImageData = (imageData) => {
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+      data[i] = data[i + 1] = data[i + 2] = brightness > 128 ? 255 : 0; // Thresholding for contrast
+    }
+    return imageData;
+  };
+
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -66,14 +75,18 @@ const QRScanner = () => {
       return;
     }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth * 2; // Increase resolution
+    canvas.height = video.videoHeight * 2;
 
+    context.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    imageData = enhanceImageData(imageData); // Improve contrast and reduce noise
+
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'dontInvert',
+      inversionAttempts: 'both', // Try both normal and inverted images
+      errorCorrectionLevel: 'high',
     });
 
     if (code) {
