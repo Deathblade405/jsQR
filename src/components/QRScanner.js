@@ -6,6 +6,7 @@ const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [batchNumber, setBatchNumber] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
+  const [invertColors, setInvertColors] = useState(false); // New state for color inversion
   const videoRef = useRef(null); // Ref for video element
   const canvasRef = useRef(null); // Ref for canvas element
   const streamRef = useRef(null); // Ref for the media stream
@@ -58,7 +59,11 @@ const QRScanner = () => {
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
       const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
-      data[i] = data[i + 1] = data[i + 2] = brightness > 128 ? 255 : 0; // Thresholding for contrast
+      if (invertColors) {
+        data[i] = data[i + 1] = data[i + 2] = brightness < 128 ? 255 : 0; // Inverted thresholding
+      } else {
+        data[i] = data[i + 1] = data[i + 2] = brightness > 128 ? 255 : 0; // Normal thresholding
+      }
     }
     return imageData;
   };
@@ -104,7 +109,7 @@ const QRScanner = () => {
     if (isScanning) {
       requestAnimationFrame(scanQRCode);
     }
-  }, [isScanning]);
+  }, [isScanning, invertColors]); // Re-run scan when invertColors changes
 
   return (
     <div className="scanner-container">
@@ -128,6 +133,16 @@ const QRScanner = () => {
           step="0.1"
           value={zoomLevel}
           onChange={(e) => adjustZoom(Number(e.target.value))}
+        />
+      </div>
+      {/* Color Inversion Toggle */}
+      <div className="invert-control">
+        <label htmlFor="invert">Invert Colors:</label>
+        <input
+          id="invert"
+          type="checkbox"
+          checked={invertColors}
+          onChange={(e) => setInvertColors(e.target.checked)}
         />
       </div>
       {isScanning && <p>Scanning...</p>}
