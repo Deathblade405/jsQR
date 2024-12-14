@@ -13,7 +13,6 @@ const QRScanner = () => {
   useEffect(() => {
     const initScanner = async () => {
       try {
-        // Access the webcam (back camera for mobile)
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
         });
@@ -35,8 +34,7 @@ const QRScanner = () => {
 
     return () => {
       if (streamRef.current) {
-        const tracks = streamRef.current.getTracks();
-        tracks.forEach((track) => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
@@ -48,8 +46,12 @@ const QRScanner = () => {
     if (track) {
       const capabilities = track.getCapabilities();
       if (capabilities.zoom) {
-        const constraints = { advanced: [{ zoom }] };
-        await track.applyConstraints(constraints);
+        try {
+          const constraints = { advanced: [{ zoom }] };
+          await track.applyConstraints(constraints);
+        } catch (error) {
+          console.error('Failed to apply zoom constraints:', error);
+        }
       }
     }
   };
@@ -59,16 +61,15 @@ const QRScanner = () => {
     const grayscaleThreshold = 128;
 
     // Adjust contrast and brightness
-    const contrastFactor = 1.5; // Increase contrast
-    const brightnessOffset = 20; // Increase brightness
+    const contrastFactor = 1.5;
+    const brightnessOffset = 20;
 
     for (let i = 0; i < data.length; i += 4) {
-      data[i] = Math.min(255, contrastFactor * data[i] + brightnessOffset); // Red
-      data[i + 1] = Math.min(255, contrastFactor * data[i + 1] + brightnessOffset); // Green
-      data[i + 2] = Math.min(255, contrastFactor * data[i + 2] + brightnessOffset); // Blue
+      data[i] = Math.min(255, contrastFactor * data[i] + brightnessOffset);
+      data[i + 1] = Math.min(255, contrastFactor * data[i + 1] + brightnessOffset);
+      data[i + 2] = Math.min(255, contrastFactor * data[i + 2] + brightnessOffset);
     }
 
-    // Convert to grayscale and binarize
     for (let i = 0; i < data.length; i += 4) {
       const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
       const binarized = gray >= grayscaleThreshold ? 255 : 0;
@@ -114,7 +115,6 @@ const QRScanner = () => {
         setIsScanning(false);
       }
     } else {
-      // Retry with zoom logic
       const track = streamRef.current?.getVideoTracks()[0];
       if (track) {
         const capabilities = track.getCapabilities();
