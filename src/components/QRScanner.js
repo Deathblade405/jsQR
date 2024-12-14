@@ -5,16 +5,17 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [batchNumber, setBatchNumber] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
+  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
+  const videoRef = useRef(null); // Ref for video element
+  const canvasRef = useRef(null); // Ref for canvas element
+  const streamRef = useRef(null); // Ref for the media stream
 
   useEffect(() => {
     const initScanner = async () => {
       try {
+        // Access the webcam (back camera for mobile)
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
+          video: { facingMode: 'environment' }, // Use back camera on mobile
         });
 
         streamRef.current = stream;
@@ -34,63 +35,31 @@ const QRScanner = () => {
 
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        const tracks = streamRef.current.getTracks();
+        tracks.forEach((track) => track.stop());
       }
     };
   }, []);
 
-  const applyZoom = async (zoom) => {
+  const adjustZoom = async (zoom) => {
+    setZoomLevel(zoom); // Update state for UI
+
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
       const capabilities = track.getCapabilities();
       if (capabilities.zoom) {
-        try {
-          const constraints = { advanced: [{ zoom }] };
-          await track.applyConstraints(constraints);
-        } catch (error) {
-          console.error('Failed to apply zoom constraints:', error);
-        }
+        const constraints = { advanced: [{ zoom }] };
+        await track.applyConstraints(constraints);
       }
     }
   };
 
-  const handleZoomChange = (e) => {
-    const zoom = Number(e.target.value);
-    setZoomLevel(zoom);
-    applyZoom(zoom);
-  };
-
-  const preprocessImage = (imageData) => {
+  const enhanceImageData = (imageData) => {
     const data = imageData.data;
-    const grayscaleThreshold = 128;
-
-    // Smooth the texture using Gaussian blur (simulate with averaging nearby pixels)
-    const kernelSize = 5;
     for (let i = 0; i < data.length; i += 4) {
-      let sum = 0;
-      for (let k = -kernelSize; k <= kernelSize; k++) {
-        const idx = i + k * 4;
-        if (idx >= 0 && idx < data.length) {
-          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-        }
-      }
-      const avg = sum / (2 * kernelSize + 1);
-      data[i] = avg;
-      data[i + 1] = avg;
-      data[i + 2] = avg;
+      const brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+      data[i] = data[i + 1] = data[i + 2] = brightness > 128 ? 255 : 0; // Thresholding for contrast
     }
-
-    // Convert to grayscale and apply adaptive thresholding
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      const threshold = Math.random() * 30 + grayscaleThreshold; // Adaptive threshold
-      const binarized = gray >= threshold ? 255 : 0;
-
-      data[i] = binarized;
-      data[i + 1] = binarized;
-      data[i + 2] = binarized;
-    }
-
     return imageData;
   };
 
@@ -106,28 +75,27 @@ const QRScanner = () => {
       return;
     }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth * 2; // Increase resolution
+    canvas.height = video.videoHeight * 2;
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    imageData = preprocessImage(imageData);
+    imageData = enhanceImageData(imageData); // Improve contrast and reduce noise
 
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'both',
+      inversionAttempts: 'both', // Try both normal and inverted images
       errorCorrectionLevel: 'high',
     });
 
     if (code) {
       const qrData = code.data;
       if (qrData !== 'https://scinovas.in/m') {
-        alert(`QR Code Scanned: ${qrData}`);
+        window.open(qrData, '_blank');
         setIsScanning(false);
       }
     } else {
-      // Retry logic: dynamically adjust preprocessing and analyze additional frames
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -141,6 +109,7 @@ const QRScanner = () => {
   return (
     <div className="scanner-container">
       <h2>QR Code Scanner</h2>
+      {/* Batch Number Input */}
       <input
         type="text"
         className="batch-number-input"
@@ -148,6 +117,7 @@ const QRScanner = () => {
         onChange={(e) => setBatchNumber(e.target.value)}
         placeholder="Enter Batch Number"
       />
+      {/* Zoom Control */}
       <div className="zoom-control">
         <label htmlFor="zoom">Zoom:</label>
         <input
@@ -157,7 +127,7 @@ const QRScanner = () => {
           max="5"
           step="0.1"
           value={zoomLevel}
-          onChange={handleZoomChange}
+          onChange={(e) => adjustZoom(Number(e.target.value))}
         />
       </div>
       {isScanning && <p>Scanning...</p>}
