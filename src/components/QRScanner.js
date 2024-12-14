@@ -9,7 +9,6 @@ const QRScanner = () => {
   const videoRef = useRef(null); // Ref for video element
   const canvasRef = useRef(null); // Ref for canvas element
   const streamRef = useRef(null); // Ref for the media stream
-  const zoomTimeoutRef = useRef(null); // Ref for debouncing zoom adjustment
 
   useEffect(() => {
     const initScanner = async () => {
@@ -40,28 +39,25 @@ const QRScanner = () => {
     };
   }, []);
 
-  const adjustZoom = (zoom) => {
-    setZoomLevel(zoom);
-
-    // Debounce logic to prevent overlapping zoom adjustments
-    if (zoomTimeoutRef.current) {
-      clearTimeout(zoomTimeoutRef.current);
-    }
-
-    zoomTimeoutRef.current = setTimeout(async () => {
-      const track = streamRef.current?.getVideoTracks()[0];
-      if (track) {
-        const capabilities = track.getCapabilities();
-        if (capabilities.zoom) {
-          try {
-            const constraints = { advanced: [{ zoom }] };
-            await track.applyConstraints(constraints);
-          } catch (error) {
-            console.error('Failed to apply zoom constraints:', error);
-          }
+  const applyZoom = async (zoom) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      const capabilities = track.getCapabilities();
+      if (capabilities.zoom) {
+        try {
+          const constraints = { advanced: [{ zoom }] };
+          await track.applyConstraints(constraints);
+        } catch (error) {
+          console.error('Failed to apply zoom constraints:', error);
         }
       }
-    }, 100); // Adjust delay as necessary
+    }
+  };
+
+  const handleZoomChange = (e) => {
+    const zoom = Number(e.target.value);
+    setZoomLevel(zoom);
+    applyZoom(zoom); // Apply zoom immediately when the slider moves
   };
 
   const preprocessImage = (imageData) => {
@@ -123,13 +119,6 @@ const QRScanner = () => {
         setIsScanning(false);
       }
     } else {
-      const track = streamRef.current?.getVideoTracks()[0];
-      if (track) {
-        const capabilities = track.getCapabilities();
-        if (capabilities.zoom && zoomLevel < 5) {
-          adjustZoom(zoomLevel + 0.1);
-        }
-      }
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -159,7 +148,7 @@ const QRScanner = () => {
           max="5"
           step="0.1"
           value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
+          onChange={handleZoomChange}
         />
       </div>
       {isScanning && <p>Scanning...</p>}
