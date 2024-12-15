@@ -2,9 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import './styles.css';
 
-// Import OpenCV (or another image processing library) for better QR detection
-import cv from 'opencv.js';
-
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [batchNumber, setBatchNumber] = useState('');
@@ -16,34 +13,37 @@ const QRScanner = () => {
   const streamRef = useRef(null);
 
   useEffect(() => {
-    const initScanner = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, // Use back camera
-        });
-
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
+    const checkOpencv = () => {
+      if (typeof cv !== 'undefined') {
+        console.log("OpenCV.js loaded");
+        // Proceed with the logic once OpenCV is loaded
         setIsScanning(true);
-      } catch (err) {
-        console.error('Error accessing camera:', err);
-        setIsScanning(false);
+      } else {
+        setTimeout(checkOpencv, 100); // Retry if OpenCV is not loaded yet
       }
     };
 
-    initScanner();
-
-    return () => {
-      if (streamRef.current) {
-        const tracks = streamRef.current.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
-    };
+    checkOpencv();
   }, []);
+
+  const initScanner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      setIsScanning(true);
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      setIsScanning(false);
+    }
+  };
 
   const adjustZoom = async (zoom) => {
     setZoomLevel(zoom);
@@ -92,75 +92,28 @@ const QRScanner = () => {
     let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     imageData = enhanceImageData(imageData);
 
-    const image = cv.matFromImageData(imageData);
+    // OpenCV processing code here (if OpenCV is loaded)
 
-    // Use OpenCV for border detection and perspective transform
-    const gray = new cv.Mat();
-    cv.cvtColor(image, gray, cv.COLOR_RGBA2GRAY);  // Convert to grayscale
-    const edges = new cv.Mat();
-    cv.Canny(gray, edges, 50, 100); // Detect edges
+    // After processing, use jsQR to decode the QR code
+    const qrCode = jsQR(imageData.data, canvas.width, canvas.height, {
+      inversionAttempts: 'both',
+      errorCorrectionLevel: 'high',
+    });
 
-    // Find contours (edges of QR code)
-    const contours = new cv.MatVector();
-    const hierarchy = new cv.Mat();
-    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    // Loop through contours to find the largest rectangle (QR code)
-    let maxArea = 0;
-    let qrContour = null;
-    for (let i = 0; i < contours.size(); i++) {
-      const contour = contours.get(i);
-      const rect = cv.boundingRect(contour);
-      const area = rect.width * rect.height;
-      if (area > maxArea) {
-        maxArea = area;
-        qrContour = contour;
+    if (qrCode) {
+      const qrData = qrCode.data;
+      if (qrData !== 'https://scinovas.in/m') {
+        window.open(qrData, '_blank');
+        setIsScanning(false);
       }
+    } else {
+      requestAnimationFrame(detectAndDecodeQRCode);
     }
-
-    // If QR contour is found, apply perspective transform
-    if (qrContour) {
-      const points = [];
-      for (let i = 0; i < qrContour.rows; i++) {
-        points.push([qrContour.data32S[i * 2], qrContour.data32S[i * 2 + 1]]);
-      }
-
-      // Perspective transform to straighten QR code
-      const srcPoints = cv.matFromArray(points);
-      const dstPoints = cv.matFromArray([
-        [0, 0],
-        [canvas.width, 0],
-        [canvas.width, canvas.height],
-        [0, canvas.height],
-      ]);
-
-      const M = cv.getPerspectiveTransform(srcPoints, dstPoints);
-      cv.warpPerspective(image, image, M, new cv.Size(canvas.width, canvas.height));
-
-      // Convert to binary image for better QR code detection
-      cv.threshold(image, image, 128, 255, cv.THRESH_BINARY);
-
-      // Now, use jsQR to decode the QR code
-      const qrCode = jsQR(image.data, image.cols, image.rows, {
-        inversionAttempts: 'both',
-        errorCorrectionLevel: 'high',
-      });
-
-      if (qrCode) {
-        const qrData = qrCode.data;
-        if (qrData !== 'https://scinovas.in/m') {
-          window.open(qrData, '_blank');
-          setIsScanning(false);
-        }
-      }
-    }
-
-    image.delete();
-    gray.delete();
-    edges.delete();
-    contours.delete();
-    hierarchy.delete();
   };
+
+  useEffect(() => {
+    initScanner();
+  }, []);
 
   useEffect(() => {
     if (isScanning) {
