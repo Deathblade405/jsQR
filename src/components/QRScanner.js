@@ -10,11 +10,49 @@ const QRScanner = () => {
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
 
+  // Helper function to get the best rear camera
+  const getBestRearCamera = async () => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    const rearCameras = videoDevices.filter(device =>
+      device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
+    );
+    
+    if (rearCameras.length === 0) {
+      // If no rear camera is found, default to the first available camera
+      return videoDevices[0];
+    }
+
+    // Otherwise, select the rear camera with the best resolution
+    let bestCamera = rearCameras[0];
+    for (const camera of rearCameras) {
+      const constraints = {
+        video: { deviceId: camera.deviceId, facingMode: 'environment' }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      if (!bestCamera.resolution || capabilities.width > bestCamera.resolution.width) {
+        bestCamera = camera;
+        bestCamera.resolution = capabilities;
+      }
+      stream.getTracks().forEach(track => track.stop()); // Clean up the stream
+    }
+
+    return bestCamera;
+  };
+
   useEffect(() => {
     const initScanner = async () => {
       try {
+        const bestCamera = await getBestRearCamera(); // Get the best rear camera
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, // Back camera
+          video: {
+            deviceId: bestCamera.deviceId,
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
         });
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
@@ -28,7 +66,6 @@ const QRScanner = () => {
     initScanner();
 
     return () => {
-      // Cleanup the media stream on component unmount
       if (streamRef.current) {
         const tracks = streamRef.current.getTracks();
         tracks.forEach((track) => track.stop());
@@ -59,7 +96,6 @@ const QRScanner = () => {
     const context = canvas.getContext('2d');
     const video = videoRef.current;
 
-    // If video has no dimensions, request another frame
     if (video.videoWidth === 0 || video.videoHeight === 0) {
       requestAnimationFrame(scanQRCode);
       return;
@@ -91,7 +127,7 @@ const QRScanner = () => {
     if (isScanning) {
       requestAnimationFrame(scanQRCode); // Start scanning when the camera is ready
     }
-  }, [isScanning, zoomLevel]); // Re-run scanning when zoomLevel changes
+  }, [isScanning, zoomLevel]);
 
   return (
     <div className="scanner-container">
