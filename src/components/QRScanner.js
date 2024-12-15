@@ -5,13 +5,10 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1); // Starting with zoom level 1
+  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   const videoRef = useRef(null); // Video stream reference
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
-
-  // Set max zoom to prevent zooming beyond camera capabilities
-  const MAX_ZOOM = 3; // You can adjust this based on the camera's capabilities
 
   useEffect(() => {
     const initScanner = async () => {
@@ -39,22 +36,22 @@ const QRScanner = () => {
     };
   }, []);
 
-  // Function to adjust zoom dynamically and limit the max zoom
+  // Function to adjust zoom manually using the slider
   const adjustZoom = async (zoom) => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
       const capabilities = track.getCapabilities();
       if (capabilities.zoom) {
-        // Ensure we are not zooming beyond the max zoom
+        // Ensure zoom is within the camera's supported range
         const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
         const constraints = { advanced: [{ zoom: newZoom }] };
         await track.applyConstraints(constraints);
-        setZoomLevel(newZoom); // Update the zoom level in the state
+        setZoomLevel(newZoom); // Update zoom state
       }
     }
   };
 
-  // Function to scan the QR code and auto-zoom
+  // Function to scan the QR code
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -86,8 +83,6 @@ const QRScanner = () => {
       setScannedValue(code.data); // Set the decoded QR content
       setIsScanning(false); // Stop scanning after a successful scan
     } else {
-      // Auto-adjust the zoom if no QR code is detected
-      adjustZoom(zoomLevel + 0.1); // Incrementally zoom in if no QR is found
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -102,6 +97,22 @@ const QRScanner = () => {
     <div className="scanner-container">
       <h2>QR Code Scanner</h2>
       <p>{scannedValue ? `Scanned Value: ${scannedValue}` : 'Scanning for QR code...'}</p>
+
+      {/* Zoom Slider */}
+      <div className="zoom-control">
+        <label htmlFor="zoom">Zoom: </label>
+        <input
+          id="zoom"
+          type="range"
+          min="1"
+          max="3"
+          step="0.1"
+          value={zoomLevel}
+          onChange={(e) => adjustZoom(Number(e.target.value))}
+        />
+      </div>
+
+      {/* Video element to display the camera feed */}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
     </div>
