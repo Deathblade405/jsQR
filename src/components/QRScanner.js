@@ -10,6 +10,9 @@ const QRScanner = () => {
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
 
+  // Set max zoom to prevent zooming beyond camera capabilities
+  const MAX_ZOOM = 3; // You can adjust this based on the camera's capabilities
+
   useEffect(() => {
     const initScanner = async () => {
       try {
@@ -36,15 +39,17 @@ const QRScanner = () => {
     };
   }, []);
 
-  // Function to adjust zoom dynamically
+  // Function to adjust zoom dynamically and limit the max zoom
   const adjustZoom = async (zoom) => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
       const capabilities = track.getCapabilities();
       if (capabilities.zoom) {
-        const constraints = { advanced: [{ zoom }] };
+        // Ensure we are not zooming beyond the max zoom
+        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
+        const constraints = { advanced: [{ zoom: newZoom }] };
         await track.applyConstraints(constraints);
-        setZoomLevel(zoom); // Update the zoom level
+        setZoomLevel(newZoom); // Update the zoom level in the state
       }
     }
   };
