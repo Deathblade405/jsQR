@@ -9,6 +9,8 @@ const QRScanner = () => {
   const videoRef = useRef(null); // Video stream reference
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
+  const minZoom = 1; // Minimum zoom level
+  const maxZoom = 3; // Maximum zoom level
 
   // Helper function to get the best rear camera
   const getBestRearCamera = async () => {
@@ -17,7 +19,7 @@ const QRScanner = () => {
     const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-    
+
     if (rearCameras.length === 0) {
       // If no rear camera is found, default to the first available camera
       return videoDevices[0];
@@ -73,17 +75,16 @@ const QRScanner = () => {
     };
   }, []);
 
-  // Function to adjust zoom manually using the slider
+  // Function to adjust zoom automatically
   const adjustZoom = async (zoom) => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
       const capabilities = track.getCapabilities();
       if (capabilities.zoom) {
-        // Ensure zoom is within the camera's supported range
         const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
         const constraints = { advanced: [{ zoom: newZoom }] };
         await track.applyConstraints(constraints);
-        setZoomLevel(newZoom); // Update zoom state
+        setZoomLevel(newZoom);
       }
     }
   };
@@ -112,13 +113,17 @@ const QRScanner = () => {
 
     // Use jsQR to decode the QR code
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'both', // Try both normal and inverted images
+      inversionAttempts: 'both',
     });
 
     if (code) {
       setScannedValue(code.data); // Set the decoded QR content
-      setIsScanning(false); // Stop scanning after a successful scan
+      setIsScanning(false); // Stop scanning
+      adjustZoom(minZoom); // Zoom out to the default level after scanning
     } else {
+      // Zoom in gradually to the max zoom while scanning
+      const newZoom = Math.min(zoomLevel + 0.1, maxZoom);
+      adjustZoom(newZoom);
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -127,27 +132,11 @@ const QRScanner = () => {
     if (isScanning) {
       requestAnimationFrame(scanQRCode); // Start scanning when the camera is ready
     }
-  }, [isScanning, zoomLevel]);
+  }, [isScanning]);
 
   return (
     <div className="scanner-container">
-      <h2>QR Code Scanner</h2>
       <p>{scannedValue ? `Scanned Value: ${scannedValue}` : 'Scanning for QR code...'}</p>
-
-      {/* Zoom Slider */}
-      <div className="zoom-control">
-        <label htmlFor="zoom">Zoom: </label>
-        <input
-          id="zoom"
-          type="range"
-          min="1"
-          max="3"
-          step="0.1"
-          value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
-        />
-      </div>
-
       {/* Video element to display the camera feed */}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
