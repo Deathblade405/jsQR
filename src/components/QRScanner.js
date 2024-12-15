@@ -10,7 +10,7 @@ const QRScanner = () => {
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
   const minZoom = 1; // Minimum zoom level
-  const maxZoom = 3; // Maximum zoom level
+  const maxZoom = 5; // Maximum zoom level
 
   // Helper function to get the best rear camera
   const getBestRearCamera = async () => {
@@ -75,17 +75,26 @@ const QRScanner = () => {
     };
   }, []);
 
-  // Function to adjust zoom automatically
-  const adjustZoom = async (zoom) => {
+  // Function to adjust zoom automatically using zoomAndRetry logic
+  const zoomAndRetry = async (track, capabilities, callback) => {
+    setTimeout(async () => {
+      if (capabilities.zoom && zoomLevel < maxZoom) {
+        setZoomLevel((prevZoom) => prevZoom + 1); // Increment zoom level
+        await track.applyConstraints({
+          advanced: [{ zoom: zoomLevel }],
+        });
+      }
+      requestAnimationFrame(callback); // Continue scanning
+    }, 500);
+  };
+
+  // Function to adjust the zoom level
+  const adjustZoom = async (zoomLevel) => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
-      const capabilities = track.getCapabilities();
-      if (capabilities.zoom) {
-        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
-        const constraints = { advanced: [{ zoom: newZoom }] };
-        await track.applyConstraints(constraints);
-        setZoomLevel(newZoom);
-      }
+      await track.applyConstraints({
+        advanced: [{ zoom: zoomLevel }],
+      });
     }
   };
 
@@ -118,13 +127,14 @@ const QRScanner = () => {
 
     if (code) {
       setScannedValue(code.data); // Set the decoded QR content
-      setIsScanning(false); // Stop scanning
+      setIsScanning(false); // Stop scanning after a successful scan
       adjustZoom(minZoom); // Zoom out to the default level after scanning
     } else {
-      // Zoom in gradually to the max zoom while scanning
-      const newZoom = Math.min(zoomLevel + 0.1, maxZoom);
-      adjustZoom(newZoom);
-      requestAnimationFrame(scanQRCode);
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (track) {
+        const capabilities = track.getCapabilities();
+        zoomAndRetry(track, capabilities, scanQRCode); // Retry zoom and scanning
+      }
     }
   };
 
