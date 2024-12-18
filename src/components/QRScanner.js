@@ -118,7 +118,7 @@ const QRScanner = () => {
 
     if (code) {
       // Check the QR code's location boundaries to ensure it's sufficiently visible
-      const { topLeftCorner, bottomRightCorner } = code.location;
+      const { topLeftCorner, bottomRightCorner, bottomLeftCorner, topRightCorner } = code.location;
       const qrWidth = bottomRightCorner.x - topLeftCorner.x;
       const qrHeight = bottomRightCorner.y - topLeftCorner.y;
 
@@ -134,6 +134,21 @@ const QRScanner = () => {
         setScanStatus(''); // Clear "No QR detected" message
         setIsScanning(false); // Stop scanning after a successful scan
       }
+
+      // Draw the bounding box around the detected QR code
+      context.beginPath();
+      context.moveTo(topLeftCorner.x, topLeftCorner.y);
+      context.lineTo(bottomLeftCorner.x, bottomLeftCorner.y);
+      context.lineTo(bottomRightCorner.x, bottomRightCorner.y);
+      context.lineTo(topRightCorner.x, topRightCorner.y);
+      context.closePath();
+
+      // Set styles for the bounding box
+      context.lineWidth = 5;
+      context.strokeStyle = 'red';
+      context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+      context.fill();
+      context.stroke();
     } else {
       setScanStatus('No QR detected');
       requestAnimationFrame(scanQRCode);
@@ -142,7 +157,7 @@ const QRScanner = () => {
 
   useEffect(() => {
     if (isScanning) {
-      requestAnimationFrame(scanQRCode);
+      requestAnimationFrame(scanQRCode); // Start scanning when the camera is ready
     }
   }, [isScanning, zoomLevel]);
 
