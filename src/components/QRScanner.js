@@ -18,13 +18,13 @@ const QRScanner = () => {
     const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-    
+
     if (rearCameras.length === 0) {
       // If no rear camera is found, default to the first available camera
       return videoDevices[0];
     }
 
-    // Otherwise, select the rear camera with the best resolution
+    // Select the rear camera with the best resolution
     let bestCamera = rearCameras[0];
     for (const camera of rearCameras) {
       const constraints = {
@@ -33,6 +33,7 @@ const QRScanner = () => {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const track = stream.getVideoTracks()[0];
       const capabilities = track.getCapabilities();
+
       if (!bestCamera.resolution || capabilities.width > bestCamera.resolution.width) {
         bestCamera = camera;
         bestCamera.resolution = capabilities;
@@ -69,7 +70,7 @@ const QRScanner = () => {
     return () => {
       if (streamRef.current) {
         const tracks = streamRef.current.getTracks();
-        tracks.forEach((track) => track.stop());
+        tracks.forEach(track => track.stop());
       }
     };
   }, []);
@@ -80,11 +81,10 @@ const QRScanner = () => {
     if (track) {
       const capabilities = track.getCapabilities();
       if (capabilities.zoom) {
-        // Ensure zoom is within the camera's supported range
         const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
         const constraints = { advanced: [{ zoom: newZoom }] };
         await track.applyConstraints(constraints);
-        setZoomLevel(newZoom); // Update zoom state
+        setZoomLevel(newZoom);
       }
     }
   };
@@ -92,40 +92,40 @@ const QRScanner = () => {
   // Function to scan the QR code
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
-  
+
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     const video = videoRef.current;
-  
+
     if (video.videoWidth === 0 || video.videoHeight === 0) {
       requestAnimationFrame(scanQRCode);
       return;
     }
-  
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-  
+
     // Draw the current video frame on the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
+
     // Get the image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  
+
     // Use jsQR to decode the QR code
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'both', // Try both normal and inverted images
     });
-  
+
     if (code) {
       // Check the QR code's location boundaries to ensure it's sufficiently visible
       const { topLeftCorner, bottomRightCorner } = code.location;
       const qrWidth = bottomRightCorner.x - topLeftCorner.x;
       const qrHeight = bottomRightCorner.y - topLeftCorner.y;
-  
+
       const qrArea = qrWidth * qrHeight;
       const frameArea = canvas.width * canvas.height;
       const qrAreaRatio = qrArea / frameArea;
-  
+
       // If the QR code is too small in the frame, show an instruction to move closer
       if (qrAreaRatio < 0.05) {
         setScanStatus('Move closer or center the QR code.');
@@ -135,15 +135,14 @@ const QRScanner = () => {
         setIsScanning(false); // Stop scanning after a successful scan
       }
     } else {
-      setScanStatus('No QR detected'); // Update scan status to show no QR detected
+      setScanStatus('No QR detected');
       requestAnimationFrame(scanQRCode);
     }
   };
-  
 
   useEffect(() => {
     if (isScanning) {
-      requestAnimationFrame(scanQRCode); // Start scanning when the camera is ready
+      requestAnimationFrame(scanQRCode);
     }
   }, [isScanning, zoomLevel]);
 
