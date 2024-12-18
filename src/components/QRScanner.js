@@ -5,6 +5,7 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
+  const [scanStatus, setScanStatus] = useState('Point your camera at a QR code'); // New state for scanning status
   const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   const videoRef = useRef(null); // Video stream reference
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
@@ -17,7 +18,7 @@ const QRScanner = () => {
     const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-    
+
     if (rearCameras.length === 0) {
       // If no rear camera is found, default to the first available camera
       return videoDevices[0];
@@ -117,8 +118,10 @@ const QRScanner = () => {
 
     if (code) {
       setScannedValue(code.data); // Set the decoded QR content
+      setScanStatus('QR code detected!'); // Update the status
       setIsScanning(false); // Stop scanning after a successful scan
     } else {
+      setScanStatus('No QR code detected. Keep pointing...'); // Update the status if no QR is detected
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -131,21 +134,8 @@ const QRScanner = () => {
 
   return (
     <div className="scanner-container">
-      <p>{scannedValue ? `Scanned Value: ${scannedValue}` : 'Scanning for QR code...'}</p>
-
-      {/* Zoom Slider */}
-      <div className="zoom-control">
-        <label htmlFor="zoom">Zoom: </label>
-        <input
-          id="zoom"
-          type="range"
-          min="1"
-          max="3"
-          step="0.1"
-          value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
-        />
-      </div>
+      <p className="status">{scanStatus}</p> {/* Display scanning status */}
+      {scannedValue && <p className="result">Scanned Value: {scannedValue}</p>}
 
       {/* Video element to display the camera feed */}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
