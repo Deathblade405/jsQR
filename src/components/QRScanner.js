@@ -7,9 +7,12 @@ const QRScanner = () => {
   const [scannedValue, setScannedValue] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   const [scanStatus, setScanStatus] = useState(''); // State to show "No QR detected"
+  const [qrDetected, setQrDetected] = useState(false); // Flag to track QR code detection
+  const [qrData, setQrData] = useState(null); // Store QR data once decoded
   const videoRef = useRef(null); // Video stream reference
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
+  const intervalRef = useRef(null); // To store the interval for QR code detection
 
   // Helper function to get the best rear camera
   const getBestRearCamera = async () => {
@@ -20,16 +23,13 @@ const QRScanner = () => {
     );
 
     if (rearCameras.length === 0) {
-      // If no rear camera is found, default to the first available camera
-      return videoDevices[0];
+      return videoDevices[0]; // Default to first camera if no rear camera found
     }
 
     // Select the rear camera with the best resolution
     let bestCamera = rearCameras[0];
     for (const camera of rearCameras) {
-      const constraints = {
-        video: { deviceId: camera.deviceId, facingMode: 'environment' }
-      };
+      const constraints = { video: { deviceId: camera.deviceId, facingMode: 'environment' } };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const track = stream.getVideoTracks()[0];
       const capabilities = track.getCapabilities();
@@ -47,7 +47,7 @@ const QRScanner = () => {
   useEffect(() => {
     const initScanner = async () => {
       try {
-        const bestCamera = await getBestRearCamera(); // Get the best rear camera
+        const bestCamera = await getBestRearCamera();
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             deviceId: bestCamera.deviceId,
@@ -68,6 +68,9 @@ const QRScanner = () => {
     initScanner();
 
     return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current); // Clear the interval on component unmount
+      }
       if (streamRef.current) {
         const tracks = streamRef.current.getTracks();
         tracks.forEach(track => track.stop());
@@ -89,7 +92,7 @@ const QRScanner = () => {
     }
   };
 
-  // Function to scan the QR code
+  // Function to scan the QR code every second
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -98,7 +101,6 @@ const QRScanner = () => {
     const video = videoRef.current;
 
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      requestAnimationFrame(scanQRCode);
       return;
     }
 
@@ -117,7 +119,12 @@ const QRScanner = () => {
     });
 
     if (code) {
-      // Check the QR code's location boundaries to ensure it's sufficiently visible
+      // Mark that a QR code has been detected
+      setQrDetected(true);
+      setQrData(code); // Store the QR data
+      setScanStatus('QR Code Detected.');
+
+      // Draw the bounding box around the detected QR code
       const { topLeftCorner, bottomRightCorner, bottomLeftCorner, topRightCorner } = code.location;
       const qrWidth = bottomRightCorner.x - topLeftCorner.x;
       const qrHeight = bottomRightCorner.y - topLeftCorner.y;
@@ -126,44 +133,35 @@ const QRScanner = () => {
       const frameArea = canvas.width * canvas.height;
       const qrAreaRatio = qrArea / frameArea;
 
-      // If the QR code is too small in the frame, show an instruction to move closer
       if (qrAreaRatio < 0.05) {
         setScanStatus('Move closer or center the QR code.');
-      } else {
-        setScannedValue(code.data); // Set the decoded QR content
-        setScanStatus(''); // Clear "No QR detected" message
-        setIsScanning(false); // Stop scanning after a successful scan
       }
-
-      // Draw the bounding box around the detected QR code
-      context.beginPath();
-      context.moveTo(topLeftCorner.x, topLeftCorner.y);
-      context.lineTo(bottomLeftCorner.x, bottomLeftCorner.y);
-      context.lineTo(bottomRightCorner.x, bottomRightCorner.y);
-      context.lineTo(topRightCorner.x, topRightCorner.y);
-      context.closePath();
-
-      // Set styles for the bounding box
-      context.lineWidth = 5;
-      context.strokeStyle = 'red';
-      context.fillStyle = 'rgba(255, 0, 0, 0.3)';
-      context.fill();
-      context.stroke();
     } else {
+      setQrDetected(false);
       setScanStatus('No QR detected');
-      requestAnimationFrame(scanQRCode);
+      setQrData(null); // Reset the QR data if not detected
+    }
+  };
+
+  // Decode the QR code when user clicks the bounding box
+  const decodeQRCode = () => {
+    if (qrData) {
+      setScannedValue(qrData.data); // Set the decoded QR content
+      setScanStatus(`Decoded Value: ${qrData.data}`); // Display the decoded value
+      setIsScanning(false); // Stop scanning after successful decoding
     }
   };
 
   useEffect(() => {
     if (isScanning) {
-      requestAnimationFrame(scanQRCode); // Start scanning when the camera is ready
+      // Set an interval to scan for QR codes every second
+      intervalRef.current = setInterval(scanQRCode, 1000);
     }
-  }, [isScanning, zoomLevel]);
+  }, [isScanning]);
 
   return (
     <div className="scanner-container">
-      <p>{scannedValue ? `Scanned Value: ${scannedValue}` : scanStatus || 'Scanning for QR code...'}</p>
+      <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
 
       {/* Zoom Slider */}
       <div className="zoom-control">
@@ -181,7 +179,27 @@ const QRScanner = () => {
 
       {/* Video element to display the camera feed */}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
-      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* Display bounding box and allow user to click to decode */}
+      {qrDetected && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            border: '2px solid red',
+            padding: '10px',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+          onClick={decodeQRCode}
+        >
+          Click to Decode QR Code
+        </div>
+      )}
     </div>
   );
 };
