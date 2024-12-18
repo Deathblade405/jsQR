@@ -5,7 +5,7 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [scanStatus, setScanStatus] = useState(''); // State for scanning status (e.g., "No QR detected")
+  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   const videoRef = useRef(null); // Video stream reference
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
@@ -13,16 +13,33 @@ const QRScanner = () => {
   // Helper function to get the best rear camera
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter((device) => device.kind === 'videoinput');
-    const rearCameras = videoDevices.filter((device) =>
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-
+    
     if (rearCameras.length === 0) {
-      return videoDevices[0]; // Default to the first camera if no rear camera is found
+      // If no rear camera is found, default to the first available camera
+      return videoDevices[0];
     }
 
-    return rearCameras[0]; // Return the first rear camera
+    // Otherwise, select the rear camera with the best resolution
+    let bestCamera = rearCameras[0];
+    for (const camera of rearCameras) {
+      const constraints = {
+        video: { deviceId: camera.deviceId, facingMode: 'environment' }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      if (!bestCamera.resolution || capabilities.width > bestCamera.resolution.width) {
+        bestCamera = camera;
+        bestCamera.resolution = capabilities;
+      }
+      stream.getTracks().forEach(track => track.stop()); // Clean up the stream
+    }
+
+    return bestCamera;
   };
 
   useEffect(() => {
@@ -56,6 +73,21 @@ const QRScanner = () => {
     };
   }, []);
 
+  // Function to adjust zoom manually using the slider
+  const adjustZoom = async (zoom) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      const capabilities = track.getCapabilities();
+      if (capabilities.zoom) {
+        // Ensure zoom is within the camera's supported range
+        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
+        const constraints = { advanced: [{ zoom: newZoom }] };
+        await track.applyConstraints(constraints);
+        setZoomLevel(newZoom); // Update zoom state
+      }
+    }
+  };
+
   // Function to scan the QR code
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -85,46 +117,39 @@ const QRScanner = () => {
 
     if (code) {
       setScannedValue(code.data); // Set the decoded QR content
-      setScanStatus(''); // Clear any "No QR detected" message
-      drawBorder(context, code.location); // Highlight QR code border
+      setIsScanning(false); // Stop scanning after a successful scan
     } else {
-      setScanStatus('No QR detected'); // Show message for blank spaces
-      context.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas to remove any previous borders
+      requestAnimationFrame(scanQRCode);
     }
-
-    requestAnimationFrame(scanQRCode); // Continue scanning
-  };
-
-  // Function to draw the QR code border
-  const drawBorder = (context, location) => {
-    if (!location) return;
-
-    context.beginPath();
-    context.moveTo(location.topLeftCorner.x, location.topLeftCorner.y);
-    context.lineTo(location.topRightCorner.x, location.topRightCorner.y);
-    context.lineTo(location.bottomRightCorner.x, location.bottomRightCorner.y);
-    context.lineTo(location.bottomLeftCorner.x, location.bottomLeftCorner.y);
-    context.closePath();
-    context.lineWidth = 4;
-    context.strokeStyle = 'green'; // Border color
-    context.stroke();
   };
 
   useEffect(() => {
     if (isScanning) {
       requestAnimationFrame(scanQRCode); // Start scanning when the camera is ready
     }
-  }, [isScanning]);
+  }, [isScanning, zoomLevel]);
 
   return (
     <div className="scanner-container">
-      {/* Show scanning status or QR code result */}
-      {scanStatus && <p className="status">{scanStatus}</p>}
-      {scannedValue && <p className="result">Scanned Value: {scannedValue}</p>}
+      <p>{scannedValue ? `Scanned Value: ${scannedValue}` : 'Scanning for QR code...'}</p>
+
+      {/* Zoom Slider */}
+      <div className="zoom-control">
+        <label htmlFor="zoom">Zoom: </label>
+        <input
+          id="zoom"
+          type="range"
+          min="1"
+          max="3"
+          step="0.1"
+          value={zoomLevel}
+          onChange={(e) => adjustZoom(Number(e.target.value))}
+        />
+      </div>
 
       {/* Video element to display the camera feed */}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
-      <canvas ref={canvasRef} className="scanner-canvas"></canvas>
+      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
     </div>
   );
 };
