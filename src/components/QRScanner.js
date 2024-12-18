@@ -6,6 +6,7 @@ const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
+  const [scanStatus, setScanStatus] = useState(''); // State to show "No QR detected"
   const videoRef = useRef(null); // Video stream reference
   const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
   const streamRef = useRef(null); // To store the media stream
@@ -117,8 +118,10 @@ const QRScanner = () => {
 
     if (code) {
       setScannedValue(code.data); // Set the decoded QR content
+      setScanStatus(''); // Clear "No QR detected" message
       setIsScanning(false); // Stop scanning after a successful scan
     } else {
+      setScanStatus('No QR detected'); // Update scan status to show no QR detected
       requestAnimationFrame(scanQRCode);
     }
   };
@@ -131,7 +134,7 @@ const QRScanner = () => {
 
   return (
     <div className="scanner-container">
-      <p>{scannedValue ? `Scanned Value: ${scannedValue}` : 'Scanning for QR code...'}</p>
+      <p>{scannedValue ? `Scanned Value: ${scannedValue}` : scanStatus || 'Scanning for QR code...'}</p>
 
       {/* Zoom Slider */}
       <div className="zoom-control">
