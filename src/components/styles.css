@@ -160,7 +160,8 @@ video {
 @media (max-width: 768px) {
   .scanner-container {
     max-width: 90%; /* Adjust container width for smaller devices */
-    padding: 15px;
+    padding: 10px; /* Reduced padding on smaller devices */
+    margin: 40px auto; /* Adjust top margin */
   }
 
   .detection-area {
@@ -170,5 +171,12 @@ video {
 
   .zoom-control input {
     max-width: 200px; /* Adjust zoom slider size for smaller screens */
+  }
+
+  /* Smaller box size for mobile */
+  .scanner-container {
+    max-width: 350px; /* Make the box smaller on mobile */
+    padding: 15px; /* Adjust padding for mobile view */
+    margin: 20px auto; /* Center the box with proper margin */
   }
 }
