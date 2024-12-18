@@ -2,7 +2,7 @@
 .scanner-container {
   position: relative;
   width: 100%;
-  max-width: 500px; /* Increased box size for larger screens */
+  max-width: 500px; /* Increased box size */
   margin: 60px auto 20px auto; /* Add margin from the header (top) and bottom */
   display: flex;
   flex-direction: column;
@@ -156,22 +156,17 @@ video {
   text-align: center;
 }
 
-/* Responsive design for mobile */
+/* Responsive design */
 @media (max-width: 768px) {
   .scanner-container {
     max-width: 90%; /* Adjust container width for smaller devices */
     padding: 10px; /* Reduced padding on smaller devices */
-    margin: 20px auto; /* Adjust top margin */
-    height: 60vh; /* Reduce height of the container */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    margin: 40px auto; /* Adjust top margin */
   }
 
   .detection-area {
-    width: 180px; /* Smaller detection area for mobile */
-    height: 180px;
+    width: 200px; /* Reduce detection area size for smaller devices */
+    height: 200px;
   }
 
   .zoom-control input {
@@ -182,18 +177,6 @@ video {
   .scanner-container {
     max-width: 350px; /* Make the box smaller on mobile */
     padding: 15px; /* Adjust padding for mobile view */
-    margin: 10px auto; /* Center the box with proper margin */
-    height: 50vh; /* Set a smaller height */
-  }
-
-  video {
-    max-width: 100%; /* Ensure video is responsive on mobile */
-    height: auto;
-  }
-
-  /* Adjust the error box for mobile */
-  #error {
-    font-size: 1.2rem; /* Slightly smaller font size for error message */
-    width: 85%; /* Make the error box a little smaller on mobile */
+    margin: 20px auto; /* Center the box with proper margin */
   }
 }
