@@ -92,39 +92,54 @@ const QRScanner = () => {
   // Function to scan the QR code
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
-
+  
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     const video = videoRef.current;
-
+  
     if (video.videoWidth === 0 || video.videoHeight === 0) {
       requestAnimationFrame(scanQRCode);
       return;
     }
-
+  
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
+  
     // Draw the current video frame on the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+  
     // Get the image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
+  
     // Use jsQR to decode the QR code
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'both', // Try both normal and inverted images
     });
-
+  
     if (code) {
-      setScannedValue(code.data); // Set the decoded QR content
-      setScanStatus(''); // Clear "No QR detected" message
-      setIsScanning(false); // Stop scanning after a successful scan
+      // Check the QR code's location boundaries to ensure it's sufficiently visible
+      const { topLeftCorner, bottomRightCorner } = code.location;
+      const qrWidth = bottomRightCorner.x - topLeftCorner.x;
+      const qrHeight = bottomRightCorner.y - topLeftCorner.y;
+  
+      const qrArea = qrWidth * qrHeight;
+      const frameArea = canvas.width * canvas.height;
+      const qrAreaRatio = qrArea / frameArea;
+  
+      // If the QR code is too small in the frame, show an instruction to move closer
+      if (qrAreaRatio < 0.05) {
+        setScanStatus('Move closer or center the QR code.');
+      } else {
+        setScannedValue(code.data); // Set the decoded QR content
+        setScanStatus(''); // Clear "No QR detected" message
+        setIsScanning(false); // Stop scanning after a successful scan
+      }
     } else {
       setScanStatus('No QR detected'); // Update scan status to show no QR detected
       requestAnimationFrame(scanQRCode);
     }
   };
+  
 
   useEffect(() => {
     if (isScanning) {
