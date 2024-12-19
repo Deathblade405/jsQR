@@ -1,47 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
+import axios from 'axios';
 import './styles.css';
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
-  const [scanStatus, setScanStatus] = useState(''); // State to show "No QR detected"
-  const [qrDetected, setQrDetected] = useState(false); // Flag to track QR code detection
-  const [qrData, setQrData] = useState(null); // Store QR data once decoded
-  const videoRef = useRef(null); // Video stream reference
-  const canvasRef = useRef(null); // Canvas reference to draw video frames for QR scanning
-  const streamRef = useRef(null); // To store the media stream
-  const intervalRef = useRef(null); // To store the interval for QR code detection
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [scanStatus, setScanStatus] = useState('');
+  const [qrDetected, setQrDetected] = useState(false);
+  const [qrData, setQrData] = useState(null);
 
-  // Helper function to get the best rear camera
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const intervalRef = useRef(null);
+
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
     const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-
-    if (rearCameras.length === 0) {
-      return videoDevices[0]; // Default to first camera if no rear camera found
-    }
-
-    // Select the rear camera with the best resolution
-    let bestCamera = rearCameras[0];
-    for (const camera of rearCameras) {
-      const constraints = { video: { deviceId: camera.deviceId, facingMode: 'environment' } };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      const track = stream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities();
-
-      if (!bestCamera.resolution || capabilities.width > bestCamera.resolution.width) {
-        bestCamera = camera;
-        bestCamera.resolution = capabilities;
-      }
-      stream.getTracks().forEach(track => track.stop()); // Clean up the stream
-    }
-
-    return bestCamera;
+    return rearCameras.length ? rearCameras[0] : videoDevices[0];
   };
 
   useEffect(() => {
@@ -68,31 +49,11 @@ const QRScanner = () => {
     initScanner();
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current); // Clear the interval on component unmount
-      }
-      if (streamRef.current) {
-        const tracks = streamRef.current.getTracks();
-        tracks.forEach(track => track.stop());
-      }
+      const tracks = streamRef.current?.getTracks();
+      tracks?.forEach(track => track.stop());
     };
   }, []);
 
-  // Function to adjust zoom manually using the slider
-  const adjustZoom = async (zoom) => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) {
-      const capabilities = track.getCapabilities();
-      if (capabilities.zoom) {
-        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
-        const constraints = { advanced: [{ zoom: newZoom }] };
-        await track.applyConstraints(constraints);
-        setZoomLevel(newZoom);
-      }
-    }
-  };
-
-  // Function to scan the QR code every second
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -107,42 +68,96 @@ const QRScanner = () => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw the current video frame on the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get the image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Use jsQR to decode the QR code
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'both', // Try both normal and inverted images
+      inversionAttempts: 'both',
     });
 
     if (code) {
-      // Mark that a QR code has been detected
       setQrDetected(true);
-      setQrData(code); // Store the QR data
-      setScanStatus(`QR Code Link: ${code.data}`); // Display the decoded link instead of "QR Code Detected"
+      setQrData(code);
+      setScanStatus(`QR Code Link: ${code.data}`);
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
-      setQrData(null); // Reset the QR data if not detected
+      setQrData(null);
     }
   };
 
-  // Decode the QR code when user clicks the bounding box
-  const decodeQRCode = () => {
-    if (qrData) {
-      setScannedValue(qrData.data); // Set the decoded QR content
-      setScanStatus(`Decoded Value: ${qrData.data}`); // Display the decoded value
-      setIsScanning(false); // Stop scanning after successful decoding
+  const adjustZoom = async (zoom) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      const capabilities = track.getCapabilities();
+      if (capabilities.zoom) {
+        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
+        const constraints = { advanced: [{ zoom: newZoom }] };
+        await track.applyConstraints(constraints);
+        setZoomLevel(newZoom);
+      }
     }
+  };
+
+  const captureImage = () => {
+    console.log('capture');
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    if (canvas && video) {
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Preprocess image if necessary (currently unused, kept for logic preservation)
+        // const preprocessedImageData = preprocessImage(imageData);
+
+        const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
+
+        const formData = new FormData();
+        formData.append('image', blob, 'image.jpg');
+
+        axios.post('https://scinovas.in:5009/b', formData)
+          .then((response) => {
+            console.log(response);
+            if (response.data.result !== 'blur') {
+              setScannedValue('Decoded');
+              setScannedValue(response.data.result);
+            } else {
+              captureImage();
+            }
+          })
+          .catch((error) => {
+            console.error('Error sending image:', error);
+          });
+      }
+    }
+  };
+
+  const dataURLtoBlob = (dataURL) => {
+    const byteString = atob(dataURL.split(',')[1]);
+    const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
+    const buffer = new ArrayBuffer(byteString.length);
+    const dataView = new Uint8Array(buffer);
+    for (let i = 0; i < byteString.length; i++) {
+      dataView[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([buffer], { type: mimeString });
   };
 
   useEffect(() => {
     if (isScanning) {
-      // Set an interval to scan for QR codes every second
-      intervalRef.current = setInterval(scanQRCode, 1000);
+      const interval = setInterval(scanQRCode, 1000);
+      intervalRef.current = interval;
+
+      return () => {
+        clearInterval(interval);
+      };
     }
   }, [isScanning]);
 
@@ -150,7 +165,6 @@ const QRScanner = () => {
     <div className="scanner-container">
       <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
 
-      {/* Zoom Slider */}
       <div className="zoom-control">
         <label htmlFor="zoom">Zoom: </label>
         <input
@@ -164,11 +178,11 @@ const QRScanner = () => {
         />
       </div>
 
-      {/* Video element to display the camera feed */}
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      {/* Display bounding box and allow user to click to decode */}
+      <button onClick={captureImage}>Capture Image</button>
+
       {qrDetected && (
         <div
           style={{
@@ -182,7 +196,12 @@ const QRScanner = () => {
             color: 'white',
             cursor: 'pointer',
           }}
-          onClick={decodeQRCode}
+          onClick={() => {
+            if (qrData) {
+              setScannedValue(qrData.data);
+              setIsScanning(false);
+            }
+          }}
         >
           Click to Decode QR Code
         </div>
