@@ -80,6 +80,7 @@ const QRScanner = () => {
       setQrDetected(true);
       setQrData(code);
       setScanStatus(`QR Code Link: ${code.data}`);
+      captureImage(); // Automatically trigger image capture on QR detection
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
@@ -101,7 +102,6 @@ const QRScanner = () => {
   };
 
   const captureImage = () => {
-    console.log('capture');
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
@@ -112,11 +112,6 @@ const QRScanner = () => {
         canvas.height = video.videoHeight;
 
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-        // Preprocess image if necessary (currently unused, kept for logic preservation)
-        // const preprocessedImageData = preprocessImage(imageData);
-
         const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
 
         const formData = new FormData();
@@ -126,10 +121,12 @@ const QRScanner = () => {
           .then((response) => {
             console.log(response);
             if (response.data.result !== 'blur') {
-              setScannedValue('Decoded');
               setScannedValue(response.data.result);
+              sessionStorage.setItem('result', response.data.result);
+              setIsScanning(false); // Stop scanning once a valid QR code is processed
             } else {
-              captureImage();
+              console.log('Image is blurry, retrying...');
+              setTimeout(captureImage, 500); // Retry capture on blur
             }
           })
           .catch((error) => {
