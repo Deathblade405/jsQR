@@ -123,7 +123,7 @@ const QRScanner = () => {
             if (response.data.result !== 'blur') {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
-              setIsScanning(false); // Stop scanning once a valid QR code is processed
+              setIsScanning(false); // Stop scanning on valid QR code
             } else {
               console.log('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
