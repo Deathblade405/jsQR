@@ -122,20 +122,7 @@ const QRScanner = () => {
       // Mark that a QR code has been detected
       setQrDetected(true);
       setQrData(code); // Store the QR data
-      setScanStatus('QR Code Detected.');
-
-      // Draw the bounding box around the detected QR code
-      const { topLeftCorner, bottomRightCorner, bottomLeftCorner, topRightCorner } = code.location;
-      const qrWidth = bottomRightCorner.x - topLeftCorner.x;
-      const qrHeight = bottomRightCorner.y - topLeftCorner.y;
-
-      const qrArea = qrWidth * qrHeight;
-      const frameArea = canvas.width * canvas.height;
-      const qrAreaRatio = qrArea / frameArea;
-
-      if (qrAreaRatio < 0.05) {
-        setScanStatus('Move closer or center the QR code.');
-      }
+      setScanStatus(`QR Code Link: ${code.data}`); // Display the decoded link instead of "QR Code Detected"
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
