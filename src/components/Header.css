@@ -32,9 +32,10 @@ h1 {
 
 /* Tagline styling */
 .tagline {
-  font-size: 12px; /* Smaller font size for tagline */
+  font-size: 14px; /* Smaller font size for tagline */
   color: #114644; /* Consistent text color */
   font-weight:300; /* Normal weight for the tagline */
   margin-left: 5px; /* Space between title and tagline */
-  align-self: flex-end; /* Align the tagline with the title */
+  align-self: flex-end;
+   /* Align the tagline with the title */
 }
