@@ -6,34 +6,75 @@
   transform: translate(-50%, -50%); /* Adjust position to the center */
   width: 100%;
   max-width: 400px; /* Limit scanner width for mobile-friendly design */
-  aspect-ratio: 1 / 1; /* Maintain a square aspect ratio */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start; /* Align items at the top */
   align-items: center;
   border: 2px solid #5cbdb9; /* Border color matching the theme */
   border-radius: 10px;
   box-shadow: 0 0 15px rgba(92, 189, 185, 0.4); /* Subtle shadow effect */
   background-color: #ffffff; /* White background for clarity */
-  overflow: hidden; /* Prevent video overflow */
+  overflow: hidden; /* Prevent content overflow */
+  padding: 10px;
 }
 
-/* Video Styling */
+/* Scanner Video Box */
+.scanner-video {
+  position: relative; /* Necessary for line animation positioning */
+  width: 100%;
+  aspect-ratio: 1 / 1; /* Maintain square box for scanner */
+  overflow: hidden;
+  border-radius: 8px;
+}
+
 video {
   width: 100%;
   height: 100%;
   object-fit: cover; /* Ensures video fits within the container */
-  border-radius: 8px;
   z-index: 1;
+}
+
+/* Scanner Line Animation */
+.scanner-line {
+  position: absolute;
+  top: 10%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #05554d; /* Dark green color for scanner line */
+  box-shadow: 0 0 10px rgba(255, 87, 34, 0.4); /* Glow effect */
+  animation: moveUpDown 2.5s linear infinite;
+  z-index: 3;
+}
+
+@keyframes moveUpDown {
+  0% {
+    top: 10%;
+  }
+  50% {
+    top: 90%;
+  }
+  100% {
+    top: 10%;
+  }
+}
+
+/* Status Text */
+p {
+  margin-top: 15px;
+  font-size: 1rem;
+  color: #0f3d3c; /* Dark green color for text */
+  text-align: center;
+  width: 100%;
 }
 
 /* Zoom Control */
 .zoom-control {
   display: flex;
   align-items: center;
+  justify-content: center; /* Center the zoom control */
   margin: 20px 0;
   width: 100%;
-  justify-content: center; /* Center the zoom control */
 }
 
 .zoom-control label {
@@ -77,40 +118,18 @@ video {
   box-shadow: 0 0 5px rgba(255, 87, 34, 0.4);
 }
 
-/* Scanner Line Animation */
-.scanner-line {
-  position: absolute;
-  top: 10%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: #05554d; /* Dark green color for scanner line */
-  box-shadow: 0 0 10px rgba(255, 87, 34, 0.4); /* Glow effect */
-  animation: moveUpDown 2.5s linear infinite;
-  z-index: 3;
-}
-
-@keyframes moveUpDown {
-  0% {
-    top: 10%;
-  }
-  50% {
-    top: 90%;
-  }
-  100% {
-    top: 10%;
-  }
-}
-
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   .scanner-container {
-    max-width: 100%; /* Increase width for better screen utilization */
-    aspect-ratio: 1 / 1; /* Maintain square layout on small screens */
-    padding: 0; /* Remove unnecessary padding */
+    max-width: 90%; /* Use most of the screen width */
+    padding: 5px;
   }
 
   .zoom-control input {
     width: 100%; /* Full width slider for smaller screens */
+  }
+
+  p {
+    font-size: 0.9rem; /* Adjust font size for smaller screens */
   }
 }
