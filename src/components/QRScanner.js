@@ -5,19 +5,43 @@ import './styles.css';
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
-  const [scannedValue, setScannedValue] = useState('');
+  const [message, setMessage] = useState('Scan the QR code for Product Authentication');
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
-  const [message, setMessage] = useState('Scan the QR code for Product Authentication');
   const [qrData, setQrData] = useState(null);
-  const [isQRCodeDetected, setIsQRCodeDetected] = useState(false);
-  const [noLocation, setNoLocation] = useState(false); // To track if location is unavailable
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [noLocation, setNoLocation] = useState(false);
+  const timeoutRef = useRef(null); // Reference for 15-second timeout
+  const timerRef = useRef(null); // Reference for timer
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const intervalRef = useRef(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
+
+  const timer = () => {
+    let i = 0;
+    const textElement = document.getElementById('text');
+    timerRef.current = setInterval(() => {
+      if (qrDetected) {
+        clearInterval(timerRef.current); // Stop the timer on QR detection
+      } else {
+        ++i;
+        if (i >= 9) {
+          textElement.classList.remove('three');
+          textElement.classList.add('four');
+          setMessage('You are almost there!');
+        } else if (i >= 6) {
+          textElement.classList.remove('two');
+          textElement.classList.add('three');
+          setMessage('Hold your device steady!');
+        } else if (i >= 3) {
+          textElement.classList.remove('one');
+          textElement.classList.add('two');
+          setMessage('QRmor AI is Authenticating your product!');
+        }
+      }
+    }, 1000);
+  };
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -44,6 +68,16 @@ const QRScanner = () => {
     }
   };
 
+  const startTimeout = () => {
+    timeoutRef.current = setTimeout(() => {
+      if (!qrDetected) {
+        setMessage('QR code not detected within 15 seconds. Counterfeit suspected.');
+        clearInterval(timerRef.current); // Stop the timer
+        setIsScanning(false); // Stop scanning
+      }
+    }, 15000); // 15 seconds
+  };
+
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -61,35 +95,19 @@ const QRScanner = () => {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'both',
     });
 
     if (code) {
-      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.1;
-      const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
-      const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
-
-      if (qrWidth >= qrSizeThreshold && qrHeight >= qrSizeThreshold) {
-        setQrDetected(true);
-        setQrData(code);
-        setScanStatus(`QR Code Link: ${code.data}`);
-        setIsQRCodeDetected(true);
-        captureImage();
-      } else {
-        setQrDetected(false);
-        setScanStatus('Detected partial QR code, retrying...');
-        setQrData(null);
-        setIsQRCodeDetected(false);
-      }
+      clearTimeout(timeoutRef.current); // Clear timeout if QR is detected
+      setQrDetected(true);
+      setQrData(code);
+      setScanStatus(`QR Code Link: ${code.data}`);
+      captureImage();
     } else {
-      if (!qrDetected) {
-        setScanStatus('No QR detected');
-      }
-      setQrDetected(false);
-      setQrData(null);
-      setIsQRCodeDetected(false);
+      setScanStatus('Scanning...');
+      zoomAndRetry();
     }
   };
 
@@ -111,19 +129,11 @@ const QRScanner = () => {
 
         axios.post('https://scinovas.in:5009/b', formData)
           .then((response) => {
-            console.log(response);
             if (response.data.result !== 'blur') {
-              setScannedValue(response.data.result);
-              sessionStorage.setItem('result', response.data.result);
-              setIsScanning(false);
-              setTimeout(() => {
-                setIsScanning(true);
-                setScannedValue('');
-                setScanStatus('Scanning for QR code...');
-              }, 3000);
+              setMessage('QR code authenticated successfully!');
             } else {
-              console.log('Image is blurry, retrying...');
-              setTimeout(captureImage, 500);
+              setMessage('Image is blurry, retrying...');
+              setTimeout(captureImage, 500); // Retry capture on blur
             }
           })
           .catch((error) => {
@@ -144,10 +154,24 @@ const QRScanner = () => {
     return new Blob([buffer], { type: mimeString });
   };
 
+  const zoomAndRetry = () => {
+    const track = streamRef.current.getVideoTracks()[0];
+    const capabilities = track.getCapabilities();
+    if (capabilities.zoom && zoomLevel < 3) {
+      setZoomLevel(prevZoom => {
+        const newZoom = prevZoom + 1;
+        track.applyConstraints({
+          advanced: [{ zoom: newZoom }],
+        });
+        return newZoom;
+      });
+    }
+  };
+
   useEffect(() => {
     const initScanner = async () => {
       try {
-        await getLocation(); // Fetch location before starting the scanner
+        await getLocation();
         const bestCamera = await getBestRearCamera();
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -160,9 +184,10 @@ const QRScanner = () => {
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
         setIsScanning(true);
+        timer();
+        startTimeout(); // Start the 15-second timeout
       } catch (err) {
-        console.error('Error accessing camera:', err);
-        setIsScanning(false);
+        console.error('Error initializing scanner:', err);
       }
     };
 
@@ -171,66 +196,17 @@ const QRScanner = () => {
     return () => {
       const tracks = streamRef.current?.getTracks();
       tracks?.forEach(track => track.stop());
+      clearInterval(timerRef.current);
+      clearTimeout(timeoutRef.current);
     };
   }, []);
 
-  useEffect(() => {
-    if (isScanning) {
-      const interval = setInterval(scanQRCode, 1000);
-      intervalRef.current = interval;
-
-      return () => {
-        clearInterval(interval);
-      };
-    }
-  }, [isScanning]);
-
-  useEffect(() => {
-    if (isScanning && streamRef.current) {
-      const track = streamRef.current.getVideoTracks()[0];
-      const capabilities = track.getCapabilities();
-      if (capabilities.zoom && zoomLevel < 3) {
-        setZoomLevel(prevZoom => {
-          const newZoom = prevZoom + 1;
-          track.applyConstraints({
-            advanced: [{ zoom: newZoom }],
-          });
-          return newZoom;
-        });
-      }
-    }
-  }, [isScanning, zoomLevel]);
-
   return (
     <div>
-      <p className="text">{message}</p>
+      <p id="text" className="text">{message}</p>
       <div className="scanner-container">
         <video ref={videoRef} width="100%" height="auto" autoPlay></video>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
-        {qrDetected && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              border: '2px solid red',
-              padding: '10px',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              color: 'white',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              if (qrData) {
-                setScannedValue(qrData.data);
-                setIsScanning(false);
-                setTimeout(() => setIsScanning(true), 3000);
-              }
-            }}
-          >
-            Click to Decode QR Code
-          </div>
-        )}
       </div>
     </div>
   );

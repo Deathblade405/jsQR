@@ -35,12 +35,28 @@ video {
   text-align: center; /* Center text */
 }
 .one{
-  color: #0f3d3c;
-}
-.two{
-  color: #00fffb;
+  color: #641E16;
 }
 
+.two{
+  color: #C0392B
+}
+
+.three{
+  color: #6E2C00
+}
+
+.four{
+  color: #D35400
+}
+
+.green-one{
+  color: #0B5345
+}
+
+.green-two{
+  color: #1D8348
+}
 /* Zoom Control */
 .zoom-control {
   display: flex;
