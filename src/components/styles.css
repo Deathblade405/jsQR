@@ -5,6 +5,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: 300px; /* Fixed width for square scanner */
+  height: 300px; /* Fixed height for square scanner */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -14,13 +15,14 @@
   background-color: #ffffff; /* White background for clarity */
   box-shadow: 0 0 15px rgba(92, 189, 185, 0.4); /* Subtle shadow effect */
   padding: 15px;
+  overflow: hidden; /* Prevent overflow of video or content */
 }
 
 /* Scanner Video Box */
 .scanner-video {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1; /* Keep a square shape */
+  height: 100%; /* Ensure it's a square */
   overflow: hidden;
   border-radius: 8px;
   margin-bottom: 15px; /* Add spacing below the video */
@@ -62,6 +64,8 @@ p {
   color: #0f3d3c; /* Dark green color for text */
   text-align: center;
   margin: 10px 0; /* Add spacing around text */
+  word-wrap: break-word; /* Ensure text wraps properly */
+  max-width: 250px; /* Limit text width */
 }
 
 /* Zoom Control */
@@ -116,9 +120,19 @@ p {
   .scanner-container {
     width: 90%; /* Take most of the screen width */
     padding: 10px;
+    height: 300px; /* Maintain square aspect ratio */
   }
 
   p {
     font-size: 0.8rem; /* Smaller font size for smaller screens */
+  }
+
+  .zoom-control input {
+    max-width: 150px; /* Smaller zoom slider for mobile */
+  }
+
+  .scanner-video {
+    width: 100%;
+    height: 100%;
   }
 }
