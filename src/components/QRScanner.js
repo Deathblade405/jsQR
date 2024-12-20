@@ -118,11 +118,13 @@ const QRScanner = () => {
         setQrDetected(false);
         setScanStatus('Detected partial QR code, retrying...');
         setQrData(null);
+        zoomAndRetry();  // Zoom in if the QR code is too small
       }
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
       setQrData(null);  
+      zoomAndRetry();  // Retry zoom if no QR code is detected
     }
   };
 
@@ -203,7 +205,7 @@ const QRScanner = () => {
         setIsScanning(true);
         timer();
         startTimeout(); // Start the 15-second timeout
-        scanQRCode(); // Call the scanQRCode function
+        scanQRCode(); // Call scanQRCode function
       } catch (err) {
         console.error('Error initializing scanner:', err);
       }
