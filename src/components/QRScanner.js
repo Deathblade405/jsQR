@@ -10,21 +10,31 @@ const QRScanner = () => {
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
+  const [loading, setLoading] = useState(true); // State to track loading
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const intervalRef = useRef(null);
 
+  // Function to get the best rear camera or fallback to front camera if not available
   const getBestRearCamera = async () => {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-    const rearCameras = videoDevices.filter(device =>
-      device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
-    );
-    return rearCameras.length ? rearCameras[0] : videoDevices[0];
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      const rearCameras = videoDevices.filter(device =>
+        device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
+      );
+
+      return rearCameras.length ? rearCameras[0] : videoDevices[0]; // Fallback to front camera
+    } catch (err) {
+      console.error("Error accessing devices:", err);
+      setScanStatus("Unable to access camera. Please ensure permissions are granted.");
+      setIsScanning(false); // Stop scanning on error
+    }
   };
 
+  // Initialize the scanner and start camera access
   useEffect(() => {
     const initScanner = async () => {
       try {
@@ -40,20 +50,25 @@ const QRScanner = () => {
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
         setIsScanning(true);
+        setLoading(false); // Camera initialized, stop loading
       } catch (err) {
         console.error('Error accessing camera:', err);
+        setScanStatus('Unable to access camera. Please ensure permissions are granted.');
         setIsScanning(false);
+        setLoading(false); // Stop loading on error
       }
     };
 
     initScanner();
 
+    // Cleanup function to stop video tracks on unmount
     return () => {
       const tracks = streamRef.current?.getTracks();
       tracks?.forEach(track => track.stop());
     };
   }, []);
 
+  // Function to scan the QR code
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -99,6 +114,7 @@ const QRScanner = () => {
     }
   };
 
+  // Function to adjust zoom level
   const adjustZoom = async (zoom) => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track) {
@@ -112,6 +128,7 @@ const QRScanner = () => {
     }
   };
 
+  // Function to capture image and send it for processing
   const captureImage = () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -149,6 +166,7 @@ const QRScanner = () => {
     }
   };
 
+  // Helper function to convert data URL to Blob
   const dataURLtoBlob = (dataURL) => {
     const byteString = atob(dataURL.split(',')[1]);
     const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
@@ -160,6 +178,7 @@ const QRScanner = () => {
     return new Blob([buffer], { type: mimeString });
   };
 
+  // Start scanning the QR code at regular intervals
   useEffect(() => {
     if (isScanning) {
       const interval = setInterval(scanQRCode, 1000);
@@ -173,47 +192,53 @@ const QRScanner = () => {
 
   return (
     <div className="scanner-container">
-      <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
+      {loading ? (
+        <div>Loading camera...</div> // Show loading message until the camera is initialized
+      ) : (
+        <>
+          <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
 
-      <div className="zoom-control">
-        <label htmlFor="zoom">Zoom: </label>
-        <input
-          id="zoom"
-          type="range"
-          min="1"
-          max="3"
-          step="0.1"
-          value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
-        />
-      </div>
+          <div className="zoom-control">
+            <label htmlFor="zoom">Zoom: </label>
+            <input
+              id="zoom"
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={zoomLevel}
+              onChange={(e) => adjustZoom(Number(e.target.value))}
+            />
+          </div>
 
-      <video ref={videoRef} width="100%" height="auto" autoPlay></video>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <video ref={videoRef} width="100%" height="auto" autoPlay></video>
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      {qrDetected && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            border: '2px solid red',
-            padding: '10px',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            if (qrData) {
-              setScannedValue(qrData.data);
-              setIsScanning(false);
-              setTimeout(() => setIsScanning(true), 3000); // Restart scanning
-            }
-          }}
-        >
-          Click to Decode QR Code
-        </div>
+          {qrDetected && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                border: '2px solid red',
+                padding: '10px',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                if (qrData) {
+                  setScannedValue(qrData.data);
+                  setIsScanning(false);
+                  setTimeout(() => setIsScanning(true), 3000); // Restart scanning
+                }
+              }}
+            >
+              Click to Decode QR Code
+            </div>
+          )}
+        </>
       )}
     </div>
   );
