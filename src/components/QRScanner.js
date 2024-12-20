@@ -166,7 +166,7 @@ const QRScanner = () => {
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
   
-    // Set the maximum zoom level to 3
+    // Set the maximum zoom level to 2 (Zoom exactly 2 times)
     const maxZoomLevel = 2;
   
     setTimeout(() => {
@@ -184,9 +184,6 @@ const QRScanner = () => {
       requestAnimationFrame(scanQRCode);
     }, 500); // Retry after a short delay to allow zoom application
   };
-  
-  
-  
 
   useEffect(() => {
     const initScanner = async () => {
