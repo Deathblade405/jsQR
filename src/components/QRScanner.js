@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import './styles.css';
 
 const QRScanner = () => {
@@ -18,13 +19,14 @@ const QRScanner = () => {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Timer for status updates during scanning
+  const navigate = useNavigate(); // For navigation to result page
+
   const timer = () => {
     let i = 0;
     const textElement = document.getElementById('text');
     timerRef.current = setInterval(() => {
       if (qrDetected) {
-        clearInterval(timerRef.current); // Stop the timer if QR is detected
+        clearInterval(timerRef.current); // Stop the timer on QR detection
       } else {
         ++i;
         if (i >= 9) {
@@ -44,7 +46,6 @@ const QRScanner = () => {
     }, 1000);
   };
 
-  // Function to get the best rear camera
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
@@ -54,7 +55,6 @@ const QRScanner = () => {
     return rearCameras.length ? rearCameras[0] : videoDevices[0];
   };
 
-  // Function to get the location of the user
   const getLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -74,15 +74,15 @@ const QRScanner = () => {
   // Function to start the timeout after scanning begins
   const startTimeout = () => {
     timeoutRef.current = setTimeout(() => {
-      if (!qrDetected) {
+      if (!qrDetected && !isScanning) {
         setMessage('This is a Counterfeit Product!');
         clearInterval(timerRef.current); // Stop the timer
-        setIsScanning(false); // Stop scanning after timeout
+        setIsScanning(false); // Stop scanning
+        navigate('/result', { state: { status: 'counterfeit' } }); // Navigate to result page
       }
     }, 15000); // 15 seconds
   };
 
-  // Function to scan the QR code from the camera feed
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -116,7 +116,6 @@ const QRScanner = () => {
     }
   };
 
-  // Capture image to send to the backend for authentication
   const captureImage = () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -137,6 +136,7 @@ const QRScanner = () => {
           .then((response) => {
             if (response.data.result !== 'blur') {
               setMessage('QR code authenticated successfully!');
+              navigate('/result', { state: { status: response.data.result } }); // Navigate with backend response
             } else {
               setMessage('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
@@ -149,7 +149,6 @@ const QRScanner = () => {
     }
   };
 
-  // Convert data URL to Blob for image upload
   const dataURLtoBlob = (dataURL) => {
     const byteString = atob(dataURL.split(',')[1]);
     const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
@@ -161,7 +160,6 @@ const QRScanner = () => {
     return new Blob([buffer], { type: mimeString });
   };
 
-  // Zoom and retry if QR code is not detected
   const zoomAndRetry = () => {
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
@@ -169,14 +167,13 @@ const QRScanner = () => {
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 1;
         track.applyConstraints({
-          advanced: [{ zoom: newZoom }], // Zoom in if needed
+          advanced: [{ zoom: newZoom }],
         });
         return newZoom;
       });
     }
   };
 
-  // Initialize the camera and start scanning
   useEffect(() => {
     const initScanner = async () => {
       try {
@@ -193,8 +190,8 @@ const QRScanner = () => {
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
         setIsScanning(true);
-        timer(); // Start the scanning timer
-        startTimeout(); // Start the timeout for 15 seconds
+        timer();
+        startTimeout(); // Start the 15-second timeout
       } catch (err) {
         console.error('Error initializing scanner:', err);
       }
@@ -202,21 +199,13 @@ const QRScanner = () => {
 
     initScanner();
 
-    // Continuous scanning (check QR code every 100ms)
-    const scanInterval = setInterval(() => {
-      if (isScanning) {
-        scanQRCode();
-      }
-    }, 100); // Check every 100ms for QR codes
-
     return () => {
-      clearInterval(scanInterval); // Cleanup interval on unmount
       const tracks = streamRef.current?.getTracks();
       tracks?.forEach(track => track.stop());
       clearInterval(timerRef.current);
       clearTimeout(timeoutRef.current);
     };
-  }, [isScanning]); // Run once when component mounts
+  }, []);
 
   return (
     <div>
