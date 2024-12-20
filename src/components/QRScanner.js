@@ -169,7 +169,7 @@ const QRScanner = () => {
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 1;
         track.applyConstraints({
-          advanced: [{ zoom: newZoom }],
+          advanced: [{ zoom: newZoom }], // Zoom in if needed
         });
         return newZoom;
       });
@@ -202,13 +202,21 @@ const QRScanner = () => {
 
     initScanner();
 
+    // Continuous scanning (check QR code every 100ms)
+    const scanInterval = setInterval(() => {
+      if (isScanning) {
+        scanQRCode();
+      }
+    }, 100); // Check every 100ms for QR codes
+
     return () => {
+      clearInterval(scanInterval); // Cleanup interval on unmount
       const tracks = streamRef.current?.getTracks();
       tracks?.forEach(track => track.stop());
       clearInterval(timerRef.current);
       clearTimeout(timeoutRef.current);
     };
-  }, []);
+  }, [isScanning]); // Run once when component mounts
 
   return (
     <div>
