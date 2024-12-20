@@ -9,7 +9,7 @@ const QRScanner = () => {
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
-  const [isQRCodeDetected, setIsQRCodeDetected] = useState(false); // New state to track QR detection status
+  const [isQRCodeDetected, setIsQRCodeDetected] = useState(false); // To track QR detection status
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -137,7 +137,11 @@ const QRScanner = () => {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
               setIsScanning(false); // Stop scanning on valid QR code
-              setTimeout(() => setIsScanning(true), 3000); // Automatically restart scanning after 3 seconds
+              setTimeout(() => {
+                setIsScanning(true); // Restart scanning after 3 seconds
+                setScannedValue(''); // Clear previous result
+                setScanStatus('Scanning for QR code...');
+              }, 3000); // Automatically restart scanning after 3 seconds
             } else {
               console.log('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
@@ -163,7 +167,7 @@ const QRScanner = () => {
 
   useEffect(() => {
     if (isScanning) {
-      const interval = setInterval(scanQRCode, 1000);
+      const interval = setInterval(scanQRCode, 1000); // Check for QR code every second
       intervalRef.current = interval;
 
       return () => {
