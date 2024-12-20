@@ -81,68 +81,8 @@ const QRScanner = () => {
     }, 15000); // 15 seconds
   };
 
-  const scanQRCode = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-  
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    const video = videoRef.current;
-  
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      return;
-    }
-  
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-  
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  
-    const code = jsQR(imageData.data, canvas.width, canvas.height, {
-      inversionAttempts: 'both',
-    });
-  
-    // Function to calculate a dynamic threshold based on frame size
-    const calculateThreshold = () => {
-      const frameSize = Math.min(canvas.width, canvas.height);
-  
-      if (frameSize <= 720) {
-        return 0.05; // Small QR codes
-      } else if (frameSize <= 1080) {
-        return 0.1; // Medium QR codes
-      } else {
-        return 0.15; // Large QR codes
-      }
-    };
-  
-    const qrSizeThreshold = Math.min(canvas.width, canvas.height) * calculateThreshold();
-  
-    if (code) {
-      // Ensure the detected QR code is large enough to be valid
-      const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
-      const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
-  
-      if (qrWidth >= qrSizeThreshold && qrHeight >= qrSizeThreshold) {
-        setQrDetected(true);
-        setQrData(code);
-        setScanStatus(`QR Code Link: ${code.data}`);
-        captureImage(); // Automatically trigger image capture on QR detection
-      } else {
-        setQrDetected(false);
-        setScanStatus('Detected partial QR code, retrying...');
-        setQrData(null);
-        zoomAndRetry(); // Zoom in and retry scanning
-      }
-    } else {
-      setQrDetected(false);
-      setScanStatus('No QR detected');
-      setQrData(null);
-      zoomAndRetry(); // Zoom in and retry scanning
-    }
-  };
-  
   const captureImage = () => {
+    console.log('capture');
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
@@ -153,25 +93,26 @@ const QRScanner = () => {
         canvas.height = video.videoHeight;
 
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Preprocess image for enhanced decoding
         const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
 
         const formData = new FormData();
         formData.append('image', blob, 'image.jpg');
 
-        axios.post('https://scinovas.in:5009/b', formData)
-          .then((response) => {
-            if (response.data.result !== 'blur') {
-              // Assuming the response.data.result is either 'genuine' or 'counterfeit'
-              setMessage(`Product is ${response.data.result === 'genuine' ? 'Genuine' : 'Counterfeit'}`);
-              navigate('/result', { state: { status: response.data.result } }); // Navigate with backend response
-            } else {
-              setMessage('Image is blurry, retrying...');
-              setTimeout(captureImage, 500); // Retry capture on blur
-            }
-          })
-          .catch((error) => {
-            console.error('Error sending image:', error);
-          });
+        axios.post('https://scinovas.in:5009/b', formData).then((response) => {
+          console.log(response);
+          if (response.data.result !== 'blur') {
+            setMessage(`Product is ${response.data.result === 'genuine' ? 'Genuine' : 'Counterfeit'}`);
+            sessionStorage.setItem('result', response.data.result);
+            navigate('/result', { state: { status: response.data.result } }); // Navigate with backend response
+          } else {
+            setMessage('Image is blurry, retrying...');
+            setTimeout(captureImage, 500); // Retry capture on blur
+          }
+        }).catch((error) => {
+          console.error('Error sending image:', error);
+        });
       }
     }
   };
@@ -185,6 +126,40 @@ const QRScanner = () => {
       dataView[i] = byteString.charCodeAt(i);
     }
     return new Blob([buffer], { type: mimeString });
+  };
+
+  const scanQRCode = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    const video = videoRef.current;
+
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    const code = jsQR(imageData.data, canvas.width, canvas.height, {
+      inversionAttempts: 'both',
+    });
+
+    if (code) {
+      setQrDetected(true);
+      setQrData(code);
+      setScanStatus(`QR Code Link: ${code.data}`);
+      captureImage(); // Automatically trigger image capture on QR detection
+    } else {
+      setQrDetected(false);
+      setScanStatus('No QR detected');
+      zoomAndRetry(); // Zoom in and retry scanning
+    }
   };
 
   const zoomAndRetry = () => {
@@ -235,14 +210,12 @@ const QRScanner = () => {
   }, []);
 
   useEffect(() => {
-    // Use requestAnimationFrame to scan QR codes continuously
     const scanInterval = () => {
       if (isScanning) {
         scanQRCode(); // Call the scanQRCode function on each frame
         requestAnimationFrame(scanInterval); // Repeat the scan on next frame
       }
     };
-    
     scanInterval(); // Start the scanning loop
 
     return () => {
