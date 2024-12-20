@@ -1,24 +1,31 @@
 // src/App.js
 import React from 'react';
 import './App.css';
-import QRScanner from './components/QRScanner';  // Correct import path
-import Header from './components/Header'; // Import Header component
-import Footer from './components/Footer'; // Import Footer component
+import QRScanner from './components/QRScanner';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ResultPage from './components/ResultPage'; // Import the result page
 
 function App() {
   return (
-    <div className="App">
-      {/* Render Header */}
-      <Header />
-      
-      {/* Main content */}
-      <div className="main-content">
-        <QRScanner />
-      </div>
+    <Router>
+      <div className="App">
+        {/* Render Header */}
+        <Header />
 
-      {/* Render Footer */}
-      <Footer />
-    </div>
+        {/* Main content */}
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={<QRScanner />} />
+            <Route path="/result" element={<ResultPage />} />
+          </Routes>
+        </div>
+
+        {/* Render Footer */}
+        <Footer />
+      </div>
+    </Router>
   );
 }
 

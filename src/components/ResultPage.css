@@ -1,0 +1,44 @@
+/* src/components/ResultPage.css */
+.result-page {
+    text-align: center;
+    padding: 20px;
+    background-color: #fff;
+  }
+  
+  .result {
+    margin: 20px auto;
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 1.2rem;
+    width: 80%;
+  }
+  
+  .result.genuine {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .result.counterfeit {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  
+  .result.unknown {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  .back-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .back-button:hover {
+    background-color: #0056b3;
+  }
+  

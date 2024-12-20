@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import './styles.css';
 
 const QRScanner = () => {
@@ -17,6 +18,8 @@ const QRScanner = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+
+  const navigate = useNavigate(); // For navigation to result page
 
   const timer = () => {
     let i = 0;
@@ -71,9 +74,10 @@ const QRScanner = () => {
   const startTimeout = () => {
     timeoutRef.current = setTimeout(() => {
       if (!qrDetected) {
-        setMessage('QR code not detected within 15 seconds. Counterfeit suspected.');
+        setMessage('This is a Counterfeit Product!');
         clearInterval(timerRef.current); // Stop the timer
         setIsScanning(false); // Stop scanning
+        navigate('/result', { state: { status: 'counterfeit' } }); // Navigate to result page
       }
     }, 15000); // 15 seconds
   };
@@ -131,6 +135,7 @@ const QRScanner = () => {
           .then((response) => {
             if (response.data.result !== 'blur') {
               setMessage('QR code authenticated successfully!');
+              navigate('/result', { state: { status: response.data.result } }); // Navigate with backend response
             } else {
               setMessage('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
