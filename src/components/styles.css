@@ -1,79 +1,74 @@
 /* General Styles for Scanner */
 .scanner-container {
-  position: absolute; /* Use absolute positioning for centering */
-  top: 50%; /* Center vertically */
-  left: 50%; /* Center horizontally */
-  transform: translate(-50%, -50%); /* Adjust position to the center */
-  width: 100%;
-  max-width: 400px; /* Limit scanner width for mobile-friendly design */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px; /* Fixed width for square scanner */
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Align items at the top */
   align-items: center;
-  border: 2px solid #5cbdb9; /* Border color matching the theme */
+  justify-content: center;
+  border: 2px solid #5cbdb9;
   border-radius: 10px;
-  box-shadow: 0 0 15px rgba(92, 189, 185, 0.4); /* Subtle shadow effect */
   background-color: #ffffff; /* White background for clarity */
-  overflow: hidden; /* Prevent content overflow */
-  padding: 10px;
+  box-shadow: 0 0 15px rgba(92, 189, 185, 0.4); /* Subtle shadow effect */
+  padding: 15px;
 }
 
 /* Scanner Video Box */
 .scanner-video {
-  position: relative; /* Necessary for line animation positioning */
+  position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1; /* Maintain square box for scanner */
+  aspect-ratio: 1 / 1; /* Keep a square shape */
   overflow: hidden;
   border-radius: 8px;
+  margin-bottom: 15px; /* Add spacing below the video */
 }
 
 video {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensures video fits within the container */
-  z-index: 1;
+  object-fit: cover; /* Ensure video fits within the container */
 }
 
 /* Scanner Line Animation */
 .scanner-line {
   position: absolute;
-  top: 10%;
+  top: 0;
   left: 0;
   width: 100%;
   height: 2px;
   background: #05554d; /* Dark green color for scanner line */
   box-shadow: 0 0 10px rgba(255, 87, 34, 0.4); /* Glow effect */
   animation: moveUpDown 2.5s linear infinite;
-  z-index: 3;
 }
 
 @keyframes moveUpDown {
   0% {
-    top: 10%;
+    top: 0;
   }
   50% {
-    top: 90%;
+    top: 100%;
   }
   100% {
-    top: 10%;
+    top: 0;
   }
 }
 
 /* Status Text */
 p {
-  margin-top: 15px;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #0f3d3c; /* Dark green color for text */
   text-align: center;
-  width: 100%;
+  margin: 10px 0; /* Add spacing around text */
 }
 
 /* Zoom Control */
 .zoom-control {
   display: flex;
   align-items: center;
-  justify-content: center; /* Center the zoom control */
-  margin: 20px 0;
+  justify-content: space-between;
   width: 100%;
 }
 
@@ -84,14 +79,12 @@ p {
 }
 
 .zoom-control input {
-  width: 80%; /* Make slider span across the container */
-  max-width: 300px;
+  flex-grow: 1;
   appearance: none; /* Remove default styles */
   height: 8px; /* Slider height */
   border-radius: 5px; /* Rounded corners */
   background: linear-gradient(to right, #5cbdb9, #05554d); /* Gradient for slider */
   outline: none; /* Remove outline */
-  opacity: 0.9; /* Slight transparency */
   transition: opacity 0.2s;
 }
 
@@ -100,12 +93,12 @@ p {
 }
 
 .zoom-control input::-webkit-slider-thumb {
-  appearance: none; /* Remove default thumb */
+  appearance: none;
   width: 20px; /* Thumb size */
   height: 20px;
   border-radius: 50%; /* Circular thumb */
   background: #ff5722; /* Orange thumb color */
-  cursor: pointer; /* Pointer cursor for interaction */
+  cursor: pointer;
   box-shadow: 0 0 5px rgba(255, 87, 34, 0.4); /* Glow effect */
 }
 
@@ -121,15 +114,11 @@ p {
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   .scanner-container {
-    max-width: 90%; /* Use most of the screen width */
-    padding: 5px;
-  }
-
-  .zoom-control input {
-    width: 100%; /* Full width slider for smaller screens */
+    width: 90%; /* Take most of the screen width */
+    padding: 10px;
   }
 
   p {
-    font-size: 0.9rem; /* Adjust font size for smaller screens */
+    font-size: 0.8rem; /* Smaller font size for smaller screens */
   }
 }
