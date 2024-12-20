@@ -1,10 +1,12 @@
 /* General Styles for Scanner */
 .scanner-container {
-  position: relative;
+  position: absolute; /* Use absolute positioning for centering */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Adjust position to the center */
   width: 100%;
   max-width: 400px; /* Limit scanner width for mobile-friendly design */
   aspect-ratio: 1 / 1; /* Maintain a square aspect ratio */
-  margin: 40px auto; /* Center the scanner on the screen */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -25,18 +27,54 @@ video {
   z-index: 1;
 }
 
-/* Detection Area */
-.detection-area {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 80%; /* Size of detection area relative to the scanner */
-  height: 80%;
-  transform: translate(-50%, -50%);
-  border: 2px dashed #ff5722; /* Dashed orange border for detection area */
-  border-radius: 8px;
-  box-shadow: 0 0 15px rgba(255, 87, 34, 0.4); /* Subtle shadow effect */
-  z-index: 3;
+/* Zoom Control */
+.zoom-control {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  width: 100%;
+  justify-content: center; /* Center the zoom control */
+}
+
+.zoom-control label {
+  margin-right: 10px;
+  font-weight: bold;
+  color: #0f3d3c; /* Dark green text color for zoom label */
+}
+
+.zoom-control input {
+  width: 80%; /* Make slider span across the container */
+  max-width: 300px;
+  appearance: none; /* Remove default styles */
+  height: 8px; /* Slider height */
+  border-radius: 5px; /* Rounded corners */
+  background: linear-gradient(to right, #5cbdb9, #05554d); /* Gradient for slider */
+  outline: none; /* Remove outline */
+  opacity: 0.9; /* Slight transparency */
+  transition: opacity 0.2s;
+}
+
+.zoom-control input:hover {
+  opacity: 1; /* Full opacity on hover */
+}
+
+.zoom-control input::-webkit-slider-thumb {
+  appearance: none; /* Remove default thumb */
+  width: 20px; /* Thumb size */
+  height: 20px;
+  border-radius: 50%; /* Circular thumb */
+  background: #ff5722; /* Orange thumb color */
+  cursor: pointer; /* Pointer cursor for interaction */
+  box-shadow: 0 0 5px rgba(255, 87, 34, 0.4); /* Glow effect */
+}
+
+.zoom-control input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff5722;
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(255, 87, 34, 0.4);
 }
 
 /* Scanner Line Animation */
@@ -64,64 +102,6 @@ video {
   }
 }
 
-/* Error Message */
-#error {
-  width: 90%; /* Adjust width for mobile */
-  max-width: 300px;
-  position: fixed;
-  top: 25%; /* Center error message vertically */
-  text-align: center;
-  border: 1px solid black;
-  padding: 15px;
-  background-color: aliceblue;
-  font-size: 1rem; /* Adjust font size for readability */
-  z-index: 99999;
-}
-
-/* Result Text */
-.text {
-  margin-top: 15px; /* Adjust spacing */
-  font-size: 1rem; /* Responsive font size */
-  color: #0f3d3c; /* Dark green for result text */
-}
-
-/* Image Container */
-#img {
-  width: 100%;
-  max-width: 300px; /* Smaller image size for mobile */
-  z-index: 999999;
-  margin-top: 15px;
-}
-
-/* Zoom Control */
-.zoom-control {
-  display: flex;
-  align-items: center;
-  margin: 10px 0;
-  width: 100%;
-}
-
-.zoom-control label {
-  margin-right: 10px;
-  font-weight: bold;
-  color: #0f3d3c; /* Dark green text color for zoom label */
-}
-
-.zoom-control input {
-  flex-grow: 1;
-  max-width: 200px; /* Reduced size for mobile */
-  margin: 0 10px;
-  accent-color: #5cbdb9; /* Green accent color */
-}
-
-/* Scanner Text */
-.scanner-container p {
-  font-size: 1em;
-  color: #0f3d3c;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   .scanner-container {
@@ -130,11 +110,7 @@ video {
     padding: 0; /* Remove unnecessary padding */
   }
 
-  video {
-    border-radius: 0; /* Remove radius for better fit in square container */
-  }
-
   .zoom-control input {
-    max-width: 150px; /* Adjust zoom slider for small screens */
+    width: 100%; /* Full width slider for smaller screens */
   }
 }
