@@ -1,22 +1,24 @@
 .footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    padding: 5px;
-    background-color: #5cbdb9; /* Light green background */
-    font-size: 14px;
-    color: #0f3d3c; /* Dark green text */
-    font-weight: bold;
-  }
-  
-  a {
-    color: inherit; /* Inherit the color from the parent element */
-    text-decoration: none; /* No underline for the link */
-  }
-  
-  a:hover {
-    text-decoration: underline; /* Underline when hovered */
-  }
-  
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex; /* Flexbox layout */
+  flex-direction: column; /* Stack content vertically */
+  justify-content: center; /* Center vertically */
+  align-items: center; /* Center horizontally */
+  padding: 5px;
+  background-color: #5cbdb9; /* Light green background */
+  font-size: 14px;
+  color: #0f3d3c; /* Dark green text */
+  font-weight: bold;
+}
+
+a {
+  color: inherit; /* Inherit the color from the parent element */
+  text-decoration: none; /* No underline for the link */
+}
+
+a:hover {
+  text-decoration: underline; /* Underline when hovered */
+}

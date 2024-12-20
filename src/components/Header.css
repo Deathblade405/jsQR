@@ -1,36 +1,40 @@
+/* Header container */
 .header {
-    padding: 5px 10px; /* Compact padding */
-    background-color: #5cbdb9; /* Greenish background */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 9999;
-    display: flex;
-    align-items: center; /* Align items vertically */
-    justify-content: flex-start; /* Align items to the left */
-    height: 50px; /* Restrict header height */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow for separation */
-  }
-  
-  .logo {
-    width: 30px; /* Smaller logo size */
-    height: auto;
-    margin-right: 10px; /* Space between logo and text */
-  }
-  
-  h1 {
-    font-size: 16px; /* Compact font size */
-    font-weight: bold;
-    color: #114644; /* Dark teal color for title */
-    margin: 0; /* Remove extra margins */
-    line-height: 1; /* Tight spacing */
-  }
-  
-  span {
-    font-size: 12px; /* Smaller font size for tagline */
-    color: #114644; /* Consistent text color */
-    font-weight: normal; /* Distinct from title */
-    margin-left: 10px; /* Slight margin from the title */
-  }
-  
+  padding: 5px 10px; /* Compact padding */
+  background-color: #5cbdb9; /* Greenish background */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center; /* Align items vertically */
+  justify-content: flex-start; /* Align items to the left */
+  height: auto; /* Allow height to expand based on content */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow for separation */
+}
+
+/* Logo styling */
+.logo {
+  width: 50px; /* Adjust logo size */
+  height: auto; /* Keep aspect ratio */
+  margin-right: 10px; /* Space between logo and title */
+}
+
+/* Title styling */
+h1 {
+  font-size: 16px; /* Font size for the title */
+  font-weight: bold;
+  color: #114644; /* Dark teal color for title */
+  margin: 0; /* Remove extra margins */
+  line-height: 1.2; /* Adjust line height */
+}
+
+/* Tagline styling */
+.tagline {
+  font-size: 16px; /* Smaller font size for tagline */
+  color: #114644; /* Consistent text color */
+  font-weight:200; /* Normal weight for the tagline */
+  margin-left: 5px; /* Space between title and tagline */
+  align-self: flex-end; /* Align the tagline with the title */
+}
