@@ -8,6 +8,7 @@ const QRScanner = () => {
   const [scannedValue, setScannedValue] = useState('');
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
+  const [message, setMessage] = useState('Scan the QR code for Product Authentication');
   const [qrData, setQrData] = useState(null);
   const [isQRCodeDetected, setIsQRCodeDetected] = useState(false); // To track QR detection status
 
@@ -186,10 +187,14 @@ const QRScanner = () => {
       zoomAndRetry(track, capabilities);
     }
   }, [isScanning, zoomLevel]);
+  
+  
 
   return (
+    <div>
+      <p class = "text">{message}</p>
     <div className="scanner-container">
-      <p>{scannedValue || scanStatus || (isQRCodeDetected ? 'QR Code detected: True' : 'Scanning for QR code...')}</p>
+      
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       {qrDetected && (
@@ -216,6 +221,7 @@ const QRScanner = () => {
           Click to Decode QR Code
         </div>
       )}
+    </div>
     </div>
   );
 };

@@ -29,14 +29,16 @@ video {
 }
 
 /* Status Text */
-p {
-  font-size: 1rem;
-  color: #0f3d3c; /* Dark green text color for status text */
-  text-align: center;
-  margin: 0 0 15px 0; /* Add margin below text */
-  word-wrap: break-word; /* Ensure text wraps properly */
-  max-width: 250px; /* Limit text width */
-  z-index: 2; /* Ensure text appears above video */
+.text{
+  margin-top: 20vh; /* Space between video and text */
+  font-size: 1.5rem; /* Larger font size for better visibility */ /* Dark green text color */
+  text-align: center; /* Center text */
+}
+.one{
+  color: #0f3d3c;
+}
+.two{
+  color: #00fffb;
 }
 
 /* Zoom Control */
@@ -117,16 +119,13 @@ p {
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   .scanner-container {
-    max-width: 100%; /* Increase width for better screen utilization */
+    max-width: 80%; /* Increase width for better screen utilization */
     aspect-ratio: 1 / 1; /* Maintain square layout on small screens */
-    padding: 0; /* Remove unnecessary padding */
+    padding: 0;
+    margin-left: 0.1%; /* Remove unnecessary padding */
   }
 
   /* Adjust text size for mobile */
-  p {
-    font-size: 0.8rem; /* Smaller font size for smaller screens */
-    margin-bottom: 20px; /* Add space below text */
-  }
 
   /* Make the zoom slider take up full width on smaller screens */
   .zoom-control input {
