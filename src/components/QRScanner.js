@@ -6,7 +6,7 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [scanStatus, setScanStatus] = useState('');
+  const [scanStatus, setScanStatus] = useState('No QR detected');
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
 
@@ -59,7 +59,7 @@ const QRScanner = () => {
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 1;
         track.applyConstraints({
-          advanced: [{ zoom: newZoom }],
+          advanced: [{ zoom: newZoom }], // Apply zoom constraints
         });
         return newZoom;
       });
@@ -105,7 +105,7 @@ const QRScanner = () => {
       }
     } else {
       setQrDetected(false);
-      setScanStatus('No QR detected');
+      setScanStatus('No QR detected'); // No QR detected message
       setQrData(null);
     }
   };
@@ -178,7 +178,7 @@ const QRScanner = () => {
 
   return (
     <div className="scanner-container">
-      <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
+      <p>{scannedValue || scanStatus}</p>
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       {qrDetected && (
