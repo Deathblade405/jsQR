@@ -117,14 +117,21 @@ p {
 
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
+  body {
+    padding-top: 20px; /* Add space at the top for text */
+  }
+
   .scanner-container {
     width: 90%; /* Take most of the screen width */
     padding: 10px;
     height: 300px; /* Maintain square aspect ratio */
+    position: relative; /* Changed to relative to prevent overlapping */
+    margin-top: 20px; /* Add margin top to avoid overlap with text */
   }
 
   p {
     font-size: 0.8rem; /* Smaller font size for smaller screens */
+    margin-bottom: 20px; /* Add space below text */
   }
 
   .zoom-control input {
