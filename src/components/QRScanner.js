@@ -166,22 +166,25 @@ const QRScanner = () => {
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
   
-    // Set a small zoom limit, e.g., zoom level up to 2 or 3.
+    // Set the maximum zoom level to 3
     const maxZoomLevel = 3;
   
     setTimeout(() => {
       if (capabilities.zoom && zoomLevel < maxZoomLevel) {
         setZoomLevel(prevZoom => {
-          const newZoom = prevZoom + 0.5; // Increment zoom by a small amount
+          const newZoom = prevZoom + 1; // Increment zoom by 1 on each retry
           track.applyConstraints({
             advanced: [{ zoom: newZoom }],
           });
-          return newZoom;
+          return newZoom; // Return the new zoom level
         });
       }
-      requestAnimationFrame(scanQRCode); // Retry scanning after applying small zoom
-    }, 500); // Delay retry after zooming
+  
+      // Continue scanning after applying zoom
+      requestAnimationFrame(scanQRCode);
+    }, 500); // Retry after a short delay to allow zoom application
   };
+  
   
   
 
