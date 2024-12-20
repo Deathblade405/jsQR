@@ -90,7 +90,7 @@ const QRScanner = () => {
     });
 
     if (code) {
-      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
+      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.1; // Reduced threshold to 10%
       const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
       const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
 
@@ -107,8 +107,11 @@ const QRScanner = () => {
         setIsQRCodeDetected(false); // QR detected partially, set state to false
       }
     } else {
+      // Use a delay to avoid instant reset for slight movements
+      if (!qrDetected) {
+        setScanStatus('No QR detected');
+      }
       setQrDetected(false);
-      setScanStatus('No QR detected');
       setQrData(null);
       setIsQRCodeDetected(false); // No QR detected, set state to false
     }
