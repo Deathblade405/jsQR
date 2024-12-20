@@ -83,32 +83,46 @@ const QRScanner = () => {
 
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
-
+  
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     const video = videoRef.current;
-
+  
     if (video.videoWidth === 0 || video.videoHeight === 0) {
       return;
     }
-
+  
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
+  
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+  
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
+  
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'both',
     });
-
+  
+    // Function to calculate a dynamic threshold based on frame size
+    const calculateThreshold = () => {
+      const frameSize = Math.min(canvas.width, canvas.height);
+  
+      if (frameSize <= 720) {
+        return 0.05; // Small QR codes
+      } else if (frameSize <= 1080) {
+        return 0.1; // Medium QR codes
+      } else {
+        return 0.15; // Large QR codes
+      }
+    };
+  
+    const qrSizeThreshold = Math.min(canvas.width, canvas.height) * calculateThreshold();
+  
     if (code) {
       // Ensure the detected QR code is large enough to be valid
-      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
       const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
       const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
-
+  
       if (qrWidth >= qrSizeThreshold && qrHeight >= qrSizeThreshold) {
         setQrDetected(true);
         setQrData(code);
@@ -118,16 +132,16 @@ const QRScanner = () => {
         setQrDetected(false);
         setScanStatus('Detected partial QR code, retrying...');
         setQrData(null);
-        zoomAndRetry();  // Zoom in if the QR code is too small
+        zoomAndRetry(); // Zoom in and retry scanning
       }
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
-      setQrData(null);  
-      zoomAndRetry();  // Retry zoom if no QR code is detected
+      setQrData(null);
+      zoomAndRetry(); // Zoom in and retry scanning
     }
   };
-
+  
   const captureImage = () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
