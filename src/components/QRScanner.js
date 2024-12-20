@@ -165,16 +165,19 @@ const QRScanner = () => {
   const zoomAndRetry = () => {
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
-    if (capabilities.zoom && zoomLevel < 3) { // Zoom level maxed at 3
+    
+    // Check if zoom capability exists and the current zoom level is less than 3
+    if (capabilities.zoom && zoomLevel < 3) { // Max zoom level is 3
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 1;
         track.applyConstraints({
           advanced: [{ zoom: newZoom }],
         });
-        return newZoom;
+        return newZoom; // Update zoom level
       });
     }
   };
+  
 
   useEffect(() => {
     const initScanner = async () => {
