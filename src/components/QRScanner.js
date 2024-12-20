@@ -167,7 +167,7 @@ const QRScanner = () => {
     const capabilities = track.getCapabilities();
   
     // Set the maximum zoom level to 3
-    const maxZoomLevel = 3;
+    const maxZoomLevel = 2;
   
     setTimeout(() => {
       if (capabilities.zoom && zoomLevel < maxZoomLevel) {
