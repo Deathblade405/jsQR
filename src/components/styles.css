@@ -155,7 +155,7 @@ video {
   }
 
   video {
-    max-height: 300px; /* Further reduce height for smaller devices */
+    max-width: 300px; /* Further reduce height for smaller devices */
   }
 
   .detection-area {
