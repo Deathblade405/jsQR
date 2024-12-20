@@ -105,7 +105,7 @@ const QRScanner = () => {
       }
     } else {
       setQrDetected(false);
-      setScanStatus('No QR detected'); // No QR detected message
+      setScanStatus('No QR detected'); // Update status to "No QR detected" if no QR code found
       setQrData(null);
     }
   };
