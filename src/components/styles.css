@@ -1,55 +1,39 @@
 /* General Styles for Scanner */
 .scanner-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 300px; /* Square container width */
-  height: 300px; /* Square container height */
+  position: absolute; /* Use absolute positioning for centering */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Adjust position to the center */
+  width: 100%;
+  max-width: 400px; /* Limit scanner width for mobile-friendly design */
+  aspect-ratio: 1 / 1; /* Maintain a square aspect ratio */
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  border: 2px solid #5cbdb9;
+  align-items: center;
+  border: 2px solid #5cbdb9; /* Border color matching the theme */
   border-radius: 10px;
-  background-color: #ffffff; /* White background for clarity */
   box-shadow: 0 0 15px rgba(92, 189, 185, 0.4); /* Subtle shadow effect */
-  padding: 15px;
-  overflow: hidden; /* Prevent content overflow */
-  z-index: 10;
+  background-color: #ffffff; /* White background for clarity */
+  overflow: hidden; /* Prevent video overflow */
 }
 
-/* Video Container */
-.scanner-video {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  margin-bottom: 15px;
-}
-
+/* Video Styling */
 video {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensure video fills the container without stretching */
-}
-
-/* Status Text */
-p {
-  font-size: 1rem;
-  color: #0f3d3c; /* Dark green color for text */
-  text-align: center;
-  margin: 10px 0; /* Add spacing around text */
-  word-wrap: break-word; /* Ensure text wraps properly */
-  max-width: 250px; /* Limit text width */
+  object-fit: cover; /* Ensures video fits within the container */
+  border-radius: 8px;
+  z-index: 1;
 }
 
 /* Zoom Control */
 .zoom-control {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  margin: 20px 0;
   width: 100%;
-  margin-top: 10px;
+  justify-content: center; /* Center the zoom control */
 }
 
 .zoom-control label {
@@ -59,12 +43,14 @@ p {
 }
 
 .zoom-control input {
-  flex-grow: 1;
+  width: 80%; /* Make slider span across the container */
+  max-width: 300px;
   appearance: none; /* Remove default styles */
   height: 8px; /* Slider height */
   border-radius: 5px; /* Rounded corners */
   background: linear-gradient(to right, #5cbdb9, #05554d); /* Gradient for slider */
   outline: none; /* Remove outline */
+  opacity: 0.9; /* Slight transparency */
   transition: opacity 0.2s;
 }
 
@@ -73,12 +59,12 @@ p {
 }
 
 .zoom-control input::-webkit-slider-thumb {
-  appearance: none;
+  appearance: none; /* Remove default thumb */
   width: 20px; /* Thumb size */
   height: 20px;
   border-radius: 50%; /* Circular thumb */
   background: #ff5722; /* Orange thumb color */
-  cursor: pointer;
+  cursor: pointer; /* Pointer cursor for interaction */
   box-shadow: 0 0 5px rgba(255, 87, 34, 0.4); /* Glow effect */
 }
 
@@ -91,43 +77,40 @@ p {
   box-shadow: 0 0 5px rgba(255, 87, 34, 0.4);
 }
 
-/* QR Code Detection Button */
-.scanner-container div {
+/* Scanner Line Animation */
+.scanner-line {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid red;
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
+  top: 10%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #05554d; /* Dark green color for scanner line */
+  box-shadow: 0 0 10px rgba(255, 87, 34, 0.4); /* Glow effect */
+  animation: moveUpDown 2.5s linear infinite;
+  z-index: 3;
+}
+
+@keyframes moveUpDown {
+  0% {
+    top: 10%;
+  }
+  50% {
+    top: 90%;
+  }
+  100% {
+    top: 10%;
+  }
 }
 
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   .scanner-container {
-    width: 80%; /* Make the scanner container smaller on mobile */
-    height: 80%; /* Maintain square aspect ratio */
-    padding: 10px;
-  }
-
-  p {
-    font-size: 0.8rem; /* Smaller font size for smaller screens */
-    margin-bottom: 20px; /* Add space below text */
-  }
-
-  .zoom-control {
-    margin-top: 10px;
+    max-width: 100%; /* Increase width for better screen utilization */
+    aspect-ratio: 1 / 1; /* Maintain square layout on small screens */
+    padding: 0; /* Remove unnecessary padding */
   }
 
   .zoom-control input {
-    max-width: 150px; /* Smaller zoom slider for mobile */
-  }
-
-  .scanner-video {
-    width: 100%;
-    height: 100%;
+    width: 100%; /* Full width slider for smaller screens */
   }
 }
