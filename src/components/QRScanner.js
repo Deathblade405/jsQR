@@ -6,7 +6,7 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [scanStatus, setScanStatus] = useState('No QR detected');
+  const [scanStatus, setScanStatus] = useState('No QR detected'); // Default status
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
 
@@ -59,7 +59,7 @@ const QRScanner = () => {
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 1;
         track.applyConstraints({
-          advanced: [{ zoom: newZoom }], // Apply zoom constraints
+          advanced: [{ zoom: newZoom }],
         });
         return newZoom;
       });
