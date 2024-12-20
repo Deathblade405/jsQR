@@ -6,15 +6,16 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
+  const [isQRCodeDetected, setIsQRCodeDetected] = useState(false); // New state to track QR detection status
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const intervalRef = useRef(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -54,6 +55,18 @@ const QRScanner = () => {
     };
   }, []);
 
+  const zoomAndRetry = async (track, capabilities) => {
+    if (capabilities.zoom && zoomLevel < 3) { // Limit to 3x zoom
+      setZoomLevel(prevZoom => {
+        const newZoom = prevZoom + 1;
+        track.applyConstraints({
+          advanced: [{ zoom: newZoom }],
+        });
+        return newZoom;
+      });
+    }
+  };
+
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -77,7 +90,6 @@ const QRScanner = () => {
     });
 
     if (code) {
-      // Ensure the detected QR code is large enough to be valid
       const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
       const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
       const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
@@ -86,29 +98,19 @@ const QRScanner = () => {
         setQrDetected(true);
         setQrData(code);
         setScanStatus(`QR Code Link: ${code.data}`);
+        setIsQRCodeDetected(true); // QR detected, update state
         captureImage(); // Automatically trigger image capture on QR detection
       } else {
         setQrDetected(false);
         setScanStatus('Detected partial QR code, retrying...');
         setQrData(null);
+        setIsQRCodeDetected(false); // QR detected partially, set state to false
       }
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
       setQrData(null);
-    }
-  };
-
-  const adjustZoom = async (zoom) => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) {
-      const capabilities = track.getCapabilities();
-      if (capabilities.zoom) {
-        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
-        const constraints = { advanced: [{ zoom: newZoom }] };
-        await track.applyConstraints(constraints);
-        setZoomLevel(newZoom);
-      }
+      setIsQRCodeDetected(false); // No QR detected, set state to false
     }
   };
 
@@ -135,8 +137,7 @@ const QRScanner = () => {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
               setIsScanning(false); // Stop scanning on valid QR code
-              // Automatically restart scanning after 3 seconds
-              setTimeout(() => setIsScanning(true), 3000);
+              setTimeout(() => setIsScanning(true), 3000); // Automatically restart scanning after 3 seconds
             } else {
               console.log('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
@@ -171,26 +172,19 @@ const QRScanner = () => {
     }
   }, [isScanning]);
 
+  useEffect(() => {
+    if (isScanning && streamRef.current) {
+      const track = streamRef.current.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      zoomAndRetry(track, capabilities);
+    }
+  }, [isScanning, zoomLevel]);
+
   return (
     <div className="scanner-container">
-      <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
-
-      <div className="zoom-control">
-        <label htmlFor="zoom">Zoom: </label>
-        <input
-          id="zoom"
-          type="range"
-          min="1"
-          max="3"
-          step="0.1"
-          value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
-        />
-      </div>
-
+      <p>{scannedValue || scanStatus || (isQRCodeDetected ? 'QR Code detected: True' : 'Scanning for QR code...')}</p>
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-
       {qrDetected && (
         <div
           style={{
