@@ -10,7 +10,8 @@ const QRScanner = () => {
   const [qrDetected, setQrDetected] = useState(false);
   const [message, setMessage] = useState('Scan the QR code for Product Authentication');
   const [qrData, setQrData] = useState(null);
-  const [isQRCodeDetected, setIsQRCodeDetected] = useState(false); // To track QR detection status
+  const [isQRCodeDetected, setIsQRCodeDetected] = useState(false);
+  const [noLocation, setNoLocation] = useState(false); // To track if location is unavailable
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -27,44 +28,19 @@ const QRScanner = () => {
     return rearCameras.length ? rearCameras[0] : videoDevices[0];
   };
 
-  useEffect(() => {
-    const initScanner = async () => {
-      try {
-        const bestCamera = await getBestRearCamera();
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            deviceId: bestCamera.deviceId,
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-        });
-        streamRef.current = stream;
-        videoRef.current.srcObject = stream;
-        setIsScanning(true);
-      } catch (err) {
-        console.error('Error accessing camera:', err);
-        setIsScanning(false);
-      }
-    };
-
-    initScanner();
-
-    return () => {
-      const tracks = streamRef.current?.getTracks();
-      tracks?.forEach(track => track.stop());
-    };
-  }, []);
-
-  const zoomAndRetry = async (track, capabilities) => {
-    if (capabilities.zoom && zoomLevel < 3) { // Limit to 3x zoom
-      setZoomLevel(prevZoom => {
-        const newZoom = prevZoom + 1;
-        track.applyConstraints({
-          advanced: [{ zoom: newZoom }],
-        });
-        return newZoom;
-      });
+  const getLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          sessionStorage.setItem('latitude', position.coords.latitude.toString());
+          sessionStorage.setItem('longitude', position.coords.longitude.toString());
+        },
+        () => {
+          setNoLocation(true);
+        }
+      );
+    } else {
+      setNoLocation(true);
     }
   };
 
@@ -91,7 +67,7 @@ const QRScanner = () => {
     });
 
     if (code) {
-      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.1; // Reduced threshold to 10%
+      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.1;
       const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
       const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
 
@@ -99,22 +75,21 @@ const QRScanner = () => {
         setQrDetected(true);
         setQrData(code);
         setScanStatus(`QR Code Link: ${code.data}`);
-        setIsQRCodeDetected(true); // QR detected, update state
-        captureImage(); // Automatically trigger image capture on QR detection
+        setIsQRCodeDetected(true);
+        captureImage();
       } else {
         setQrDetected(false);
         setScanStatus('Detected partial QR code, retrying...');
         setQrData(null);
-        setIsQRCodeDetected(false); // QR detected partially, set state to false
+        setIsQRCodeDetected(false);
       }
     } else {
-      // Use a delay to avoid instant reset for slight movements
       if (!qrDetected) {
         setScanStatus('No QR detected');
       }
       setQrDetected(false);
       setQrData(null);
-      setIsQRCodeDetected(false); // No QR detected, set state to false
+      setIsQRCodeDetected(false);
     }
   };
 
@@ -140,15 +115,15 @@ const QRScanner = () => {
             if (response.data.result !== 'blur') {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
-              setIsScanning(false); // Stop scanning on valid QR code
+              setIsScanning(false);
               setTimeout(() => {
-                setIsScanning(true); // Restart scanning after 3 seconds
-                setScannedValue(''); // Clear previous result
+                setIsScanning(true);
+                setScannedValue('');
                 setScanStatus('Scanning for QR code...');
-              }, 3000); // Automatically restart scanning after 3 seconds
+              }, 3000);
             } else {
               console.log('Image is blurry, retrying...');
-              setTimeout(captureImage, 500); // Retry capture on blur
+              setTimeout(captureImage, 500);
             }
           })
           .catch((error) => {
@@ -170,8 +145,38 @@ const QRScanner = () => {
   };
 
   useEffect(() => {
+    const initScanner = async () => {
+      try {
+        await getLocation(); // Fetch location before starting the scanner
+        const bestCamera = await getBestRearCamera();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: bestCamera.deviceId,
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+        streamRef.current = stream;
+        videoRef.current.srcObject = stream;
+        setIsScanning(true);
+      } catch (err) {
+        console.error('Error accessing camera:', err);
+        setIsScanning(false);
+      }
+    };
+
+    initScanner();
+
+    return () => {
+      const tracks = streamRef.current?.getTracks();
+      tracks?.forEach(track => track.stop());
+    };
+  }, []);
+
+  useEffect(() => {
     if (isScanning) {
-      const interval = setInterval(scanQRCode, 1000); // Check for QR code every second
+      const interval = setInterval(scanQRCode, 1000);
       intervalRef.current = interval;
 
       return () => {
@@ -184,44 +189,49 @@ const QRScanner = () => {
     if (isScanning && streamRef.current) {
       const track = streamRef.current.getVideoTracks()[0];
       const capabilities = track.getCapabilities();
-      zoomAndRetry(track, capabilities);
+      if (capabilities.zoom && zoomLevel < 3) {
+        setZoomLevel(prevZoom => {
+          const newZoom = prevZoom + 1;
+          track.applyConstraints({
+            advanced: [{ zoom: newZoom }],
+          });
+          return newZoom;
+        });
+      }
     }
   }, [isScanning, zoomLevel]);
-  
-  
 
   return (
     <div>
-      <p class = "text">{message}</p>
-    <div className="scanner-container">
-      
-      <video ref={videoRef} width="100%" height="auto" autoPlay></video>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      {qrDetected && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            border: '2px solid red',
-            padding: '10px',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            if (qrData) {
-              setScannedValue(qrData.data);
-              setIsScanning(false);
-              setTimeout(() => setIsScanning(true), 3000); // Restart scanning
-            }
-          }}
-        >
-          Click to Decode QR Code
-        </div>
-      )}
-    </div>
+      <p className="text">{message}</p>
+      <div className="scanner-container">
+        <video ref={videoRef} width="100%" height="auto" autoPlay></video>
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+        {qrDetected && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              border: '2px solid red',
+              padding: '10px',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              if (qrData) {
+                setScannedValue(qrData.data);
+                setIsScanning(false);
+                setTimeout(() => setIsScanning(true), 3000);
+              }
+            }}
+          >
+            Click to Decode QR Code
+          </div>
+        )}
+      </div>
     </div>
   );
 };
