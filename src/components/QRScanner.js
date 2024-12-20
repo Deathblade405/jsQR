@@ -71,14 +71,12 @@ const QRScanner = () => {
     }
   };
 
-  // Function to start the timeout after scanning begins
   const startTimeout = () => {
     timeoutRef.current = setTimeout(() => {
-      if (!qrDetected && !isScanning) {
-        setMessage('This is a Counterfeit Product!');
+      if (!qrDetected && isScanning) {
+        setMessage('No QR detected, try again!');
         clearInterval(timerRef.current); // Stop the timer
         setIsScanning(false); // Stop scanning
-        navigate('/result', { state: { status: 'counterfeit' } }); // Navigate to result page
       }
     }, 15000); // 15 seconds
   };
@@ -100,19 +98,31 @@ const QRScanner = () => {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'both',
     });
 
     if (code) {
-      clearTimeout(timeoutRef.current); // Clear timeout if QR is detected
-      setQrDetected(true);
-      setQrData(code);
-      setScanStatus(`QR Code Link: ${code.data}`);
-      captureImage();
+      // Ensure the detected QR code is large enough to be valid
+      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
+      const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
+      const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
+
+      if (qrWidth >= qrSizeThreshold && qrHeight >= qrSizeThreshold) {
+        setQrDetected(true);
+        setQrData(code);
+        setScanStatus(`QR Code Link: ${code.data}`);
+        captureImage(); // Automatically trigger image capture on QR detection
+      } else {
+        setQrDetected(false);
+        setScanStatus('Detected partial QR code, retrying...');
+        setQrData(null);
+      }
     } else {
-      setScanStatus('Scanning...');
-      zoomAndRetry();
+      setQrDetected(false);
+      setScanStatus('No QR detected');
+      setQrData(null);  
     }
   };
 
@@ -135,7 +145,8 @@ const QRScanner = () => {
         axios.post('https://scinovas.in:5009/b', formData)
           .then((response) => {
             if (response.data.result !== 'blur') {
-              setMessage('QR code authenticated successfully!');
+              // Assuming the response.data.result is either 'genuine' or 'counterfeit'
+              setMessage(`Product is ${response.data.result === 'genuine' ? 'Genuine' : 'Counterfeit'}`);
               navigate('/result', { state: { status: response.data.result } }); // Navigate with backend response
             } else {
               setMessage('Image is blurry, retrying...');
@@ -192,6 +203,7 @@ const QRScanner = () => {
         setIsScanning(true);
         timer();
         startTimeout(); // Start the 15-second timeout
+        scanQRCode(); // Call the scanQRCode function
       } catch (err) {
         console.error('Error initializing scanner:', err);
       }
@@ -206,6 +218,13 @@ const QRScanner = () => {
       clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!qrDetected) {
+      // Keep track of whether a QR code is detected
+      startTimeout(); // Restart timeout if no QR detected
+    }
+  }, [qrDetected]); // Only trigger when qrDetected changes
 
   return (
     <div>
