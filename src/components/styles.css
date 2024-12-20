@@ -2,62 +2,53 @@
 .scanner-container {
   position: relative;
   width: 100%;
-  max-width: 500px; /* Increased box size */
-  margin: 60px auto 20px auto; /* Add margin from the header (top) and bottom */
+  max-width: 400px; /* Limit scanner width for mobile-friendly design */
+  margin: 40px auto; /* Center the scanner on the screen */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border: 2px solid #5cbdb9; /* Border matching header/footer color */
-  border-radius: 8px;
-  box-shadow: 0 0 25px rgba(92, 189, 185, 0.5); /* Box shadow using the same color */
-  padding: 20px;
+  border: 2px solid #5cbdb9; /* Border color matching the theme */
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(92, 189, 185, 0.4); /* Subtle shadow effect */
+  padding: 15px;
   background-color: #ffffff; /* White background for clarity */
 }
 
-/* Add this to center the box vertically on the page */
+/* Center the scanner vertically */
 body {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  height: 100vh;
   margin: 0;
+  background-color: #f7f7f7; /* Neutral background color */
 }
 
 video {
   width: 100%;
-  height: auto;
+  max-height: 350px; /* Limit video height for mobile */
   border-radius: 8px;
-  object-fit: contain;
+  object-fit: cover; /* Cover the available area without distortion */
   z-index: 1;
 }
 
-.gray-overlay {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(128, 128, 128, 0.5); /* Transparent gray overlay */
-  clip-path: polygon(0% 0%, 0% 100%, 21% 100%, 21% 21%, 79% 21%, 79% 79%, 21% 79%, 21% 100%, 100% 100%, 100% 0%);
-  z-index: 2;
-}
-
+/* Detection Area */
 .detection-area {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 250px; /* Increased detection area */
-  height: 250px; /* Increased detection area */
+  width: 200px; /* Reduced detection area for mobile */
+  height: 200px;
   transform: translate(-50%, -50%);
   border: 2px solid #ff5722; /* Orange border for detection area */
   border-radius: 8px;
-  box-shadow: 0 0 15px rgba(255, 87, 34, 0.5); /* Orange shadow effect */
+  box-shadow: 0 0 15px rgba(255, 87, 34, 0.4); /* Subtle shadow effect */
   z-index: 3;
 }
 
+/* Scanner Line Animation */
 .scanner-line {
   position: absolute;
   top: 0;
@@ -65,8 +56,8 @@ video {
   width: 100%;
   height: 2px;
   background: #05554d; /* Dark green color for scanner line */
-  box-shadow: 0 0 15px rgba(255, 87, 34, 0.5); /* Light orange glow */
-  animation: moveUpDown 3s linear infinite;
+  box-shadow: 0 0 10px rgba(255, 87, 34, 0.4); /* Glow effect */
+  animation: moveUpDown 2.5s linear infinite; /* Faster animation for mobile */
   z-index: 3;
 }
 
@@ -82,43 +73,41 @@ video {
   }
 }
 
-/* Error message styling */
+/* Error Message */
 #error {
-  width: 80%; /* Increased width for better visibility */
-  max-width: 400px; /* Ensure it doesn’t exceed box size */
-  margin: 20px auto;
+  width: 90%; /* Adjust width for mobile */
+  max-width: 300px;
   position: fixed;
-  top: 30%;
+  top: 25%; /* Center error message vertically */
   text-align: center;
   border: 1px solid black;
-  padding: 25px;
+  padding: 15px;
   background-color: aliceblue;
-  font-size: 1.5rem;
+  font-size: 1rem; /* Adjust font size for readability */
   z-index: 99999;
 }
 
-/* Text for result */
+/* Result Text */
 .text {
-  margin-top: 20px; /* Adjust spacing */
-  font-size: large; /* Responsive font size */
-  color: #0f3d3c; /* Using dark green for result text */
+  margin-top: 15px; /* Adjust spacing */
+  font-size: 1rem; /* Responsive font size */
+  color: #0f3d3c; /* Dark green for result text */
 }
 
-/* Image container */
+/* Image Container */
 #img {
   width: 100%;
-  max-width: 500px; /* Responsive image size */
+  max-width: 300px; /* Smaller image size for mobile */
   z-index: 999999;
-  margin-top: 20px;
+  margin-top: 15px;
 }
 
 /* Zoom Control */
 .zoom-control {
   display: flex;
   align-items: center;
-  margin-top: 10px;
-  margin-bottom: 20px;
-  width: 100%; /* Ensure responsiveness */
+  margin: 10px 0;
+  width: 100%;
 }
 
 .zoom-control label {
@@ -128,55 +117,52 @@ video {
 }
 
 .zoom-control input {
-  flex-grow: 1; /* Allow the slider to grow responsively */
-  max-width: 300px; /* Set max width for larger devices */
+  flex-grow: 1;
+  max-width: 200px; /* Reduced size for mobile */
   margin: 0 10px;
-  accent-color: #5cbdb9; /* Green accent color for the zoom slider */
+  accent-color: #5cbdb9; /* Green accent color */
 }
 
-/* Result Text */
+/* Result Text Styling */
 .result {
-  margin-top: 20px;
-  font-size: 1.2em;
-  color: #4caf50; /* Green color for successful scan results */
+  margin-top: 15px;
+  font-size: 1rem;
+  color: #4caf50; /* Green color for successful results */
 }
 
-/* For when scanning is in progress */
+/* Scanner Text */
 .scanner-container h2 {
-  font-size: 1.5em;
-  color: #0f3d3c; /* Dark green color for heading */
-  margin-bottom: 15px;
+  font-size: 1.2em;
+  color: #0f3d3c; /* Dark green heading */
+  margin-bottom: 10px;
   text-align: center;
 }
 
 .scanner-container p {
-  font-size: 1.1em;
-  color: #0f3d3c; /* Dark green for text */
-  margin-bottom: 15px;
+  font-size: 1em;
+  color: #0f3d3c;
+  margin-bottom: 10px;
   text-align: center;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
+/* Mobile Responsive Adjustments */
+@media (max-width: 480px) {
   .scanner-container {
-    max-width: 90%; /* Adjust container width for smaller devices */
-    padding: 10px; /* Reduced padding on smaller devices */
-    margin: 40px auto; /* Adjust top margin */
+    max-width: 90%;
+    padding: 10px; /* Reduce padding for smaller screens */
+    margin: 20px auto;
+  }
+
+  video {
+    max-height: 300px; /* Further reduce height for smaller devices */
   }
 
   .detection-area {
-    width: 200px; /* Reduce detection area size for smaller devices */
-    height: 200px;
+    width: 150px; /* Reduce detection area size */
+    height: 150px;
   }
 
   .zoom-control input {
-    max-width: 200px; /* Adjust zoom slider size for smaller screens */
-  }
-
-  /* Smaller box size for mobile */
-  .scanner-container {
-    max-width: 350px; /* Make the box smaller on mobile */
-    padding: 15px; /* Adjust padding for mobile view */
-    margin: 20px auto; /* Center the box with proper margin */
+    max-width: 150px; /* Adjust zoom slider for small screens */
   }
 }

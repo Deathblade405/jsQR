@@ -77,10 +77,21 @@ const QRScanner = () => {
     });
 
     if (code) {
-      setQrDetected(true);
-      setQrData(code);
-      setScanStatus(`QR Code Link: ${code.data}`);
-      captureImage(); // Automatically trigger image capture on QR detection
+      // Ensure the detected QR code is large enough to be valid
+      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
+      const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
+      const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
+
+      if (qrWidth >= qrSizeThreshold && qrHeight >= qrSizeThreshold) {
+        setQrDetected(true);
+        setQrData(code);
+        setScanStatus(`QR Code Link: ${code.data}`);
+        captureImage(); // Automatically trigger image capture on QR detection
+      } else {
+        setQrDetected(false);
+        setScanStatus('Detected partial QR code, retrying...');
+        setQrData(null);
+      }
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
@@ -124,6 +135,8 @@ const QRScanner = () => {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
               setIsScanning(false); // Stop scanning on valid QR code
+              // Automatically restart scanning after 3 seconds
+              setTimeout(() => setIsScanning(true), 3000);
             } else {
               console.log('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
@@ -178,8 +191,6 @@ const QRScanner = () => {
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <button onClick={captureImage}>Capture Image</button>
-
       {qrDetected && (
         <div
           style={{
@@ -197,6 +208,7 @@ const QRScanner = () => {
             if (qrData) {
               setScannedValue(qrData.data);
               setIsScanning(false);
+              setTimeout(() => setIsScanning(true), 3000); // Restart scanning
             }
           }}
         >
