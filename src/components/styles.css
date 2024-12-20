@@ -118,15 +118,18 @@ p {
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   body {
-    padding-top: 20px; /* Add space at the top for text */
+    margin-top: 20px; /* Ensure there is space at the top for text */
+    padding-top: 0; /* Remove unnecessary padding-top */
   }
 
   .scanner-container {
     width: 90%; /* Take most of the screen width */
-    padding: 10px;
     height: 300px; /* Maintain square aspect ratio */
-    position: relative; /* Changed to relative to prevent overlapping */
-    margin-top: 20px; /* Add margin top to avoid overlap with text */
+    position: absolute; /* Ensure it's centered */
+    top: 50%; /* Position vertically centered */
+    left: 50%; /* Position horizontally centered */
+    transform: translate(-50%, -50%); /* Ensure it's exactly centered */
+    padding: 10px;
   }
 
   p {
