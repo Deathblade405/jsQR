@@ -147,9 +147,9 @@ video {
 
 /* Mobile Responsive Adjustments */
 /* Mobile Responsive Adjustments */
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .scanner-container {
-    max-width: 90%; /* Increased width to make better use of the screen */
+    max-width: 100%; /* Increased width to make better use of the screen */
     padding: 10px; /* Reduce padding for smaller screens */
     margin: 20px auto;
   }
