@@ -30,7 +30,7 @@ video {
 
 /* Status Text */
 .text{
-  margin-top: 20vh; /* Space between video and text */
+  margin-top: 18vh; /* Space between video and text */
   font-size: 1.5rem; /* Larger font size for better visibility */ /* Dark green text color */
   text-align: center; /* Center text */
 }
