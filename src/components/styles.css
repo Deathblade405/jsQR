@@ -158,7 +158,7 @@ video {
   }
 
   .detection-area {
-    width: 150px; /* Reduce detection area size */
+    width: 300px; /* Reduce detection area size */
     height: 150px;
   }
 
