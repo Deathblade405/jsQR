@@ -176,7 +176,7 @@ const QRScanner = () => {
   const zoomAndRetry = () => {
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
-    if (capabilities.zoom && zoomLevel < 3) {
+    if (capabilities.zoom && zoomLevel < 3) { // Zoom level maxed at 3
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 1;
         track.applyConstraints({
@@ -205,7 +205,6 @@ const QRScanner = () => {
         setIsScanning(true);
         timer();
         startTimeout(); // Start the 15-second timeout
-        scanQRCode(); // Call scanQRCode function
       } catch (err) {
         console.error('Error initializing scanner:', err);
       }
@@ -222,11 +221,20 @@ const QRScanner = () => {
   }, []);
 
   useEffect(() => {
-    if (!qrDetected) {
-      // Keep track of whether a QR code is detected
-      startTimeout(); // Restart timeout if no QR detected
-    }
-  }, [qrDetected]); // Only trigger when qrDetected changes
+    // Use requestAnimationFrame to scan QR codes continuously
+    const scanInterval = () => {
+      if (isScanning) {
+        scanQRCode(); // Call the scanQRCode function on each frame
+        requestAnimationFrame(scanInterval); // Repeat the scan on next frame
+      }
+    };
+    
+    scanInterval(); // Start the scanning loop
+
+    return () => {
+      setIsScanning(false); // Stop scanning when the component is unmounted
+    };
+  }, [isScanning]);
 
   return (
     <div>
