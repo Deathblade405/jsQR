@@ -26,15 +26,17 @@ const QRScanner = () => {
 
   const zoomAndRetry = (track, capabilities, callback) => {
     setTimeout(() => {
-      if (capabilities.zoom && zoomLevelRef.current < 5) {
-        zoomLevelRef.current += 1;
+      if (capabilities.zoom && zoomLevelRef.current < 3) { // Cap zoom to 3 levels
+        zoomLevelRef.current += 1; // Increment zoom level
         track.applyConstraints({
-          advanced: [{ zoom: zoomLevelRef.current }],
+          advanced: [{ zoom: zoomLevelRef.current }], // Apply new zoom level
         });
+        console.log(`Zoom level set to: ${zoomLevelRef.current}`);
       }
       requestAnimationFrame(callback);
-    }, 500);
+    }, 500); // Retry after 500ms
   };
+  
 
   useEffect(() => {
     const initScanner = async () => {
