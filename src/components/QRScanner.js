@@ -10,6 +10,7 @@ const QRScanner = () => {
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
   const [noLocation, setNoLocation] = useState(false);
+  const [retryCount, setRetryCount] = useState(0); // Track the number of retries for blurry images
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -165,6 +166,10 @@ const QRScanner = () => {
         const formData = new FormData();
         formData.append('image', blob, 'image.jpg');
 
+        // Add location data to the formData
+        formData.append('latitude', sessionStorage.getItem('latitude'));
+        formData.append('longitude', sessionStorage.getItem('longitude'));
+
         axios
           .post('https://scinovas.in:5009/b', formData)
           .then((response) => {
@@ -173,13 +178,20 @@ const QRScanner = () => {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
               setIsScanning(false); // Stop scanning on valid QR code
+              setRetryCount(0); // Reset retry count after successful scan
               setTimeout(() => {
                 setIsScanning(true);
                 getLocation(); // Prompt location again after scan restarts
               }, 3000); // Automatically restart scanning after 3 seconds
             } else {
               console.log('Image is blurry, retrying...');
-              setTimeout(captureImage, 500); // Retry capture on blur
+              setRetryCount(prev => prev + 1); // Increment retry count
+              if (retryCount >= 3) {
+                setScanStatus('Image is too blurry, please try again later.');
+                setIsScanning(false); // Stop scanning after too many blurry attempts
+              } else {
+                setTimeout(captureImage, 500); // Retry capture on blur
+              }
             }
           })
           .catch((error) => {
