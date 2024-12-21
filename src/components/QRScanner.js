@@ -55,16 +55,15 @@ const QRScanner = () => {
         streamRef.current = stream;
         const track = stream.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
-        trackRef.current = track; // Save track for geolocation integration
+        trackRef.current = track;
         capabilitiesRef.current = capabilities;
 
         videoRef.current.srcObject = stream;
         setIsScanning(true);
 
-        // Apply zoom and start the scanning loop
         zoomAndRetry(track, capabilities, () => {
           if (isScanning) {
-            getLocation(); // Ensure geolocation is checked
+            getLocation(); // Explicitly request location at the start
           }
         });
       } catch (err) {
@@ -87,13 +86,16 @@ const QRScanner = () => {
         (position) => {
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
+          console.log(
+            `Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`
+          );
           if (trackRef.current && capabilitiesRef.current) {
             scanQRCode(trackRef.current, capabilitiesRef.current);
           }
         },
-        () => {
+        (error) => {
           setNoLocation(true);
-          setScanStatus('Unable to retrieve location');
+          setScanStatus(`Location error: ${error.message}`);
         }
       );
     } else {
@@ -153,6 +155,7 @@ const QRScanner = () => {
     if (canvas && video) {
       const context = canvas.getContext('2d');
       if (context) {
+        // Adjust the canvas to capture the full image
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
@@ -165,19 +168,23 @@ const QRScanner = () => {
         axios
           .post('https://scinovas.in:5009/b', formData)
           .then((response) => {
-            console.log(response);
+            console.log('Post Response:', response.data);
             if (response.data.result !== 'blur') {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
               setIsScanning(false); // Stop scanning on valid QR code
-              setTimeout(() => setIsScanning(true), 3000); // Automatically restart scanning after 3 seconds
+              setTimeout(() => {
+                setIsScanning(true);
+                getLocation(); // Prompt location again after scan restarts
+              }, 3000); // Automatically restart scanning after 3 seconds
             } else {
               console.log('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
             }
           })
           .catch((error) => {
-            console.error('Error sending image:', error);
+            console.error('Error sending image:', error.message || error);
+            setScanStatus('Error processing QR code. Please try again.');
           });
       }
     }
@@ -209,7 +216,6 @@ const QRScanner = () => {
     <div>
       <p className="status-message">{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
       <div className="scanner-container">
-        {/* Message is now displayed above the video container */}
         <video ref={videoRef} width="100%" height="auto" autoPlay></video>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         {qrDetected && (
