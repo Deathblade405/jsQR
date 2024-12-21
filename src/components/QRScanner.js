@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';  // Added for navigation to result page
 import './styles.css';
 
 const QRScanner = () => {
@@ -17,6 +18,7 @@ const QRScanner = () => {
   const zoomLevelRef = useRef(1); // Keep track of zoom level
   const trackRef = useRef(null);
   const capabilitiesRef = useRef(null);
+  const navigate = useNavigate();  // Declare navigate hook
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -176,12 +178,9 @@ const QRScanner = () => {
               console.log('Post Response:', response.data);
               if (response.data.result !== 'blur') {
                 setScannedValue(response.data.result);
-                sessionStorage.setItem('result', response.data.result);
+                sessionStorage.setItem('result', response.data.result);  // Save result to sessionStorage
                 setIsScanning(false); // Stop scanning on valid QR code
-                setTimeout(() => {
-                  setIsScanning(true);
-                  getLocation(); // Prompt location again after scan restarts
-                }, 3000); // Automatically restart scanning after 3 seconds
+                navigate('/result');  // Navigate to the result page
               } else {
                 console.log('Image is blurry, retrying...');
                 setTimeout(captureImage, 500); // Retry capture on blur

@@ -1,44 +1,31 @@
-/* src/components/ResultPage.css */
-.result-page {
-    text-align: center;
-    padding: 20px;
-    background-color: #fff;
-  }
-  
-  .result {
-    margin: 20px auto;
-    padding: 15px;
-    border-radius: 5px;
-    font-size: 1.2rem;
-    width: 80%;
-  }
-  
-  .result.genuine {
-    background-color: #d4edda;
-    color: #155724;
-  }
-  
-  .result.counterfeit {
-    background-color: #f8d7da;
-    color: #721c24;
-  }
-  
-  .result.unknown {
-    background-color: #fff3cd;
-    color: #856404;
-  }
-  
-  .back-button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .back-button:hover {
-    background-color: #0056b3;
-  }
-  
+.result-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f4f4f4;
+  padding: 20px;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.status-message {
+  padding: 20px;
+  border-radius: 10px;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.status-message.genuine {
+  background-color: #4caf50; /* Green for genuine */
+  color: white;
+}
+
+.status-message.counterfeit {
+  background-color: #f44336; /* Red for counterfeit */
+  color: white;
+}
