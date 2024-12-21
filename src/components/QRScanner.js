@@ -9,11 +9,14 @@ const QRScanner = () => {
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
+  const [noLocation, setNoLocation] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const intervalRef = useRef(null);
   const zoomLevelRef = useRef(1); // Keep track of zoom level
+  const trackRef = useRef(null);
+  const capabilitiesRef = useRef(null);
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -36,7 +39,6 @@ const QRScanner = () => {
       requestAnimationFrame(callback);
     }, 500); // Retry after 500ms
   };
-  
 
   useEffect(() => {
     const initScanner = async () => {
@@ -53,6 +55,8 @@ const QRScanner = () => {
         streamRef.current = stream;
         const track = stream.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
+        trackRef.current = track; // Save track for geolocation integration
+        capabilitiesRef.current = capabilities;
 
         videoRef.current.srcObject = stream;
         setIsScanning(true);
@@ -60,7 +64,7 @@ const QRScanner = () => {
         // Apply zoom and start the scanning loop
         zoomAndRetry(track, capabilities, () => {
           if (isScanning) {
-            scanQRCode();
+            getLocation(); // Ensure geolocation is checked
           }
         });
       } catch (err) {
@@ -76,6 +80,27 @@ const QRScanner = () => {
       tracks?.forEach(track => track.stop());
     };
   }, []);
+
+  const getLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          sessionStorage.setItem('latitude', position.coords.latitude.toString());
+          sessionStorage.setItem('longitude', position.coords.longitude.toString());
+          if (trackRef.current && capabilitiesRef.current) {
+            scanQRCode(trackRef.current, capabilitiesRef.current);
+          }
+        },
+        () => {
+          setNoLocation(true);
+          setScanStatus('Unable to retrieve location');
+        }
+      );
+    } else {
+      setNoLocation(true);
+      setScanStatus('Geolocation not supported');
+    }
+  };
 
   const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -171,7 +196,7 @@ const QRScanner = () => {
 
   useEffect(() => {
     if (isScanning) {
-      const interval = setInterval(scanQRCode, 1000);
+      const interval = setInterval(() => scanQRCode(trackRef.current, capabilitiesRef.current), 1000);
       intervalRef.current = interval;
 
       return () => {
@@ -182,38 +207,36 @@ const QRScanner = () => {
 
   return (
     <div>
-       <p className="status-message">{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
-    
-    <div className="scanner-container">
-      {/* Message is now displayed above the video container */}
-     
-      <video ref={videoRef} width="100%" height="auto" autoPlay></video>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      {qrDetected && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            border: '2px solid red',
-            padding: '10px',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            if (qrData) {
-              setScannedValue(qrData.data);
-              setIsScanning(false);
-              setTimeout(() => setIsScanning(true), 3000); // Restart scanning
-            }
-          }}
-        >
-          Click to Decode QR Code
-        </div>
-      )}
-    </div>
+      <p className="status-message">{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
+      <div className="scanner-container">
+        {/* Message is now displayed above the video container */}
+        <video ref={videoRef} width="100%" height="auto" autoPlay></video>
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+        {qrDetected && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              border: '2px solid red',
+              padding: '10px',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              if (qrData) {
+                setScannedValue(qrData.data);
+                setIsScanning(false);
+                setTimeout(() => setIsScanning(true), 3000); // Restart scanning
+              }
+            }}
+          >
+            Click to Decode QR Code
+          </div>
+        )}
+      </div>
     </div>
   );
 };
