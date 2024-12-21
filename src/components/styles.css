@@ -119,6 +119,13 @@ video {
   animation: moveUpDown 2.5s linear infinite;
   z-index: 3;
 }
+.status-message {
+  margin-top: 22vh;
+  text-align: center;
+  font-size: 1.2em;
+  color: #333;
+}
+
 
 @keyframes moveUpDown {
   0% {
@@ -135,7 +142,7 @@ video {
 /* Mobile Responsive Adjustments */
 @media (max-width: 480px) {
   .scanner-container {
-    max-width: 80%; /* Increase width for better screen utilization */
+    max-width: 90%; /* Increase width for better screen utilization */
     aspect-ratio: 1 / 1; /* Maintain square layout on small screens */
     padding: 0;
     margin-left: 0.1%; /* Remove unnecessary padding */

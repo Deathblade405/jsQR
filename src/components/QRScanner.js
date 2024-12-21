@@ -6,15 +6,14 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedValue, setScannedValue] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
-
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const intervalRef = useRef(null);
+  const zoomLevelRef = useRef(1); // Keep track of zoom level
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -23,6 +22,18 @@ const QRScanner = () => {
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
     return rearCameras.length ? rearCameras[0] : videoDevices[0];
+  };
+
+  const zoomAndRetry = (track, capabilities, callback) => {
+    setTimeout(() => {
+      if (capabilities.zoom && zoomLevelRef.current < 5) {
+        zoomLevelRef.current += 1;
+        track.applyConstraints({
+          advanced: [{ zoom: zoomLevelRef.current }],
+        });
+      }
+      requestAnimationFrame(callback);
+    }, 500);
   };
 
   useEffect(() => {
@@ -38,8 +49,18 @@ const QRScanner = () => {
           },
         });
         streamRef.current = stream;
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
+
         videoRef.current.srcObject = stream;
         setIsScanning(true);
+
+        // Apply zoom and start the scanning loop
+        zoomAndRetry(track, capabilities, () => {
+          if (isScanning) {
+            scanQRCode();
+          }
+        });
       } catch (err) {
         console.error('Error accessing camera:', err);
         setIsScanning(false);
@@ -77,7 +98,6 @@ const QRScanner = () => {
     });
 
     if (code) {
-      // Ensure the detected QR code is large enough to be valid
       const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
       const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
       const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
@@ -86,7 +106,7 @@ const QRScanner = () => {
         setQrDetected(true);
         setQrData(code);
         setScanStatus(`QR Code Link: ${code.data}`);
-        captureImage(); // Automatically trigger image capture on QR detection
+        captureImage();
       } else {
         setQrDetected(false);
         setScanStatus('Detected partial QR code, retrying...');
@@ -95,20 +115,7 @@ const QRScanner = () => {
     } else {
       setQrDetected(false);
       setScanStatus('No QR detected');
-      setQrData(null);  
-    }
-  };
-
-  const adjustZoom = async (zoom) => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) {
-      const capabilities = track.getCapabilities();
-      if (capabilities.zoom) {
-        const newZoom = Math.min(Math.max(zoom, capabilities.zoom.min), capabilities.zoom.max);
-        const constraints = { advanced: [{ zoom: newZoom }] };
-        await track.applyConstraints(constraints);
-        setZoomLevel(newZoom);
-      }
+      setQrData(null);
     }
   };
 
@@ -128,15 +135,15 @@ const QRScanner = () => {
         const formData = new FormData();
         formData.append('image', blob, 'image.jpg');
 
-        axios.post('https://scinovas.in:5009/b', formData)
+        axios
+          .post('https://scinovas.in:5009/b', formData)
           .then((response) => {
             console.log(response);
             if (response.data.result !== 'blur') {
               setScannedValue(response.data.result);
               sessionStorage.setItem('result', response.data.result);
               setIsScanning(false); // Stop scanning on valid QR code
-              // Automatically restart scanning after 3 seconds
-              setTimeout(() => setIsScanning(true), 3000);
+              setTimeout(() => setIsScanning(true), 3000); // Automatically restart scanning after 3 seconds
             } else {
               console.log('Image is blurry, retrying...');
               setTimeout(captureImage, 500); // Retry capture on blur
@@ -172,25 +179,14 @@ const QRScanner = () => {
   }, [isScanning]);
 
   return (
+    <div>
+       <p className="status-message">{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
+    
     <div className="scanner-container">
-      <p>{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
-
-      <div className="zoom-control">
-        <label htmlFor="zoom">Zoom: </label>
-        <input
-          id="zoom"
-          type="range"
-          min="1"
-          max="3"
-          step="0.1"
-          value={zoomLevel}
-          onChange={(e) => adjustZoom(Number(e.target.value))}
-        />
-      </div>
-
+      {/* Message is now displayed above the video container */}
+     
       <video ref={videoRef} width="100%" height="auto" autoPlay></video>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-
       {qrDetected && (
         <div
           style={{
@@ -215,6 +211,7 @@ const QRScanner = () => {
           Click to Decode QR Code
         </div>
       )}
+    </div>
     </div>
   );
 };
