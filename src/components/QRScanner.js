@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';  // Added for navigation to result page
 import './styles.css';
 
 const QRScanner = () => {
@@ -18,7 +17,6 @@ const QRScanner = () => {
   const zoomLevelRef = useRef(1); // Keep track of zoom level
   const trackRef = useRef(null);
   const capabilitiesRef = useRef(null);
-  const navigate = useNavigate();  // Declare navigate hook
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -138,7 +136,7 @@ const QRScanner = () => {
         setQrDetected(true);
         setQrData(code);
         setScanStatus(`QR Code Link: ${code.data}`);
-        captureImage(); // Capture the image only if QR code is valid
+        captureImage();
       } else {
         setQrDetected(false);
         setScanStatus('Detected partial QR code, retrying...');
@@ -152,45 +150,42 @@ const QRScanner = () => {
   };
 
   const captureImage = () => {
-    // Only proceed if a QR code is detected and we are scanning
-    if (qrDetected && !isScanning) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
 
-      if (canvas && video) {
-        const context = canvas.getContext('2d');
-        if (context) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
+    if (canvas && video) {
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
 
-          // Prevent sending the request if it is already in progress or the image is blurry
-          if (isScanning) return;
+        const formData = new FormData();
+        formData.append('image', blob, 'image.jpg');
 
-          const formData = new FormData();
-          formData.append('image', blob, 'image.jpg');
-
-          axios
-            .post('https://scinovas.in:5009/b', formData)
-            .then((response) => {
-              console.log('Post Response:', response.data);
-              if (response.data.result !== 'blur') {
-                setScannedValue(response.data.result);
-                sessionStorage.setItem('result', response.data.result);  // Save result to sessionStorage
-                setIsScanning(false); // Stop scanning on valid QR code
-                navigate('/result');  // Navigate to the result page
-              } else {
-                console.log('Image is blurry, retrying...');
-                setTimeout(captureImage, 500); // Retry capture on blur
-              }
-            })
-            .catch((error) => {
-              console.error('Error sending image:', error.message || error);
-              setScanStatus('Error processing QR code. Please try again.');
-            });
-        }
+        axios
+          .post('https://scinovas.in:5009/b', formData)
+          .then((response) => {
+            console.log('Post Response:', response.data);
+            if (response.data.result !== 'blur') {
+              setScannedValue(response.data.result);
+              sessionStorage.setItem('result', response.data.result);
+              setIsScanning(false); // Stop scanning on valid QR code
+              setTimeout(() => {
+                setIsScanning(true);
+                getLocation(); // Prompt location again after scan restarts
+              }, 3000); // Automatically restart scanning after 3 seconds
+            } else {
+              console.log('Image is blurry, retrying...');
+              setTimeout(captureImage, 500); // Retry capture on blur
+            }
+          })
+          .catch((error) => {
+            console.error('Error sending image:', error.message || error);
+            setScanStatus('Error processing QR code. Please try again.');
+          });
       }
     }
   };
