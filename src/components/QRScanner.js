@@ -7,44 +7,18 @@ import './styles.css';
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [message, setMessage] = useState('Scan the QR code for Product Authentication');
-  const [scanStatus, setScanStatus] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   const [qrDetected, setQrDetected] = useState(false);
   const [qrData, setQrData] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [noLocation, setNoLocation] = useState(false);
-  const timeoutRef = useRef(null); // Reference for 15-second timeout
-  const timerRef = useRef(null); // Reference for timer
-
+  const timerRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const retryTimeoutRef = useRef(null);
 
-  const navigate = useNavigate(); // For navigation to result page
-
-  const timer = () => {
-    let i = 0;
-    const textElement = document.getElementById('text');
-    timerRef.current = setInterval(() => {
-      if (qrDetected) {
-        clearInterval(timerRef.current); // Stop the timer on QR detection
-      } else {
-        ++i;
-        if (i >= 9) {
-          textElement.classList.remove('three');
-          textElement.classList.add('four');
-          setMessage('You are almost there!');
-        } else if (i >= 6) {
-          textElement.classList.remove('two');
-          textElement.classList.add('three');
-          setMessage('Hold your device steady!');
-        } else if (i >= 3) {
-          textElement.classList.remove('one');
-          textElement.classList.add('two');
-          setMessage('QRmor AI is Authenticating your product!');
-        }
-      }
-    }, 1000);
-  };
+  const navigate = useNavigate();
 
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -71,49 +45,40 @@ const QRScanner = () => {
     }
   };
 
-  const startTimeout = () => {
-    timeoutRef.current = setTimeout(() => {
-      if (!qrDetected && isScanning) {
-        setMessage('No QR detected, try again!');
-        clearInterval(timerRef.current); // Stop the timer
-        setIsScanning(false); // Stop scanning
-      }
-    }, 15000); // 15 seconds
-  };
-
-  const captureImage = () => {
-    console.log('capture');
+  const captureImage = async () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
-    if (canvas && video) {
-      const context = canvas.getContext('2d');
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    if (!canvas || !video) return;
 
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Preprocess image for enhanced decoding
-        const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
+    const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
 
-        const formData = new FormData();
-        formData.append('image', blob, 'image.jpg');
+    const formData = new FormData();
+    formData.append('image', blob, 'image.jpg');
 
-        axios.post('https://scinovas.in:5009/b', formData).then((response) => {
-          console.log(response);
-          if (response.data.result !== 'blur') {
-            setMessage(`Product is ${response.data.result === 'genuine' ? 'Genuine' : 'Counterfeit'}`);
-            sessionStorage.setItem('result', response.data.result);
-            navigate('/result', { state: { status: response.data.result } }); // Navigate with backend response
-          } else {
-            setMessage('Image is blurry, retrying...');
-            setTimeout(captureImage, 500); // Retry capture on blur
-          }
-        }).catch((error) => {
-          console.error('Error sending image:', error);
-        });
+    try {
+      const response = await axios.post('https://scinovas.in:5009/b', formData);
+      if (response.data.result !== 'blur') {
+        setMessage(`Product is ${response.data.result === 'genuine' ? 'Genuine' : 'Counterfeit'}`);
+        sessionStorage.setItem('result', response.data.result);
+        navigate('/result', { state: { status: response.data.result } });
+      } else {
+        setRetryCount(retryCount + 1);
+        if (retryCount < 3) {
+          setMessage('Image is blurry, retrying...');
+          retryTimeoutRef.current = setTimeout(captureImage, 1000);
+        } else {
+          setMessage('Failed to process the image after multiple retries.');
+        }
       }
+    } catch (error) {
+      console.error('Error sending image:', error);
+      setMessage('Error processing image, please try again.');
     }
   };
 
@@ -141,11 +106,9 @@ const QRScanner = () => {
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
     const code = jsQR(imageData.data, canvas.width, canvas.height, {
       inversionAttempts: 'both',
     });
@@ -153,36 +116,43 @@ const QRScanner = () => {
     if (code) {
       setQrDetected(true);
       setQrData(code);
-      setScanStatus(`QR Code Link: ${code.data}`);
-      captureImage(); // Automatically trigger image capture on QR detection
-    } else {
-      setQrDetected(false);
-      setScanStatus('No QR detected');
-      zoomAndRetry(); // Zoom in and retry scanning
+      captureImage();
     }
   };
 
-  const zoomAndRetry = () => {
-    const track = streamRef.current.getVideoTracks()[0];
-    const capabilities = track.getCapabilities();
-  
-    // Set the maximum zoom level to 2 (Zoom exactly 2 times)
-    const maxZoomLevel = 2;
-  
-    setTimeout(() => {
-      if (capabilities.zoom && zoomLevel < maxZoomLevel) {
-        setZoomLevel(prevZoom => {
-          const newZoom = prevZoom + 1; // Increment zoom by 1 on each retry
-          track.applyConstraints({
-            advanced: [{ zoom: newZoom }],
-          });
-          return newZoom; // Return the new zoom level
-        });
+  const handleZoomChange = (e) => {
+    const newZoomLevel = Number(e.target.value);
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      const constraints = { advanced: [{ zoom: newZoomLevel }] };
+      track.applyConstraints(constraints).catch(err => console.error('Zoom error:', err));
+      setZoomLevel(newZoomLevel);
+    }
+  };
+
+  const startTimerWithMessages = () => {
+    let i = 0;
+    const textElement = document.getElementById('text');
+    timerRef.current = setInterval(() => {
+      if (qrDetected) {
+        clearInterval(timerRef.current); // Stop the timer on QR detection
+      } else {
+        i++;
+        if (i >= 9) {
+          textElement.classList.remove('three');
+          textElement.classList.add('four');
+          setMessage('You are almost there!');
+        } else if (i >= 6) {
+          textElement.classList.remove('two');
+          textElement.classList.add('three');
+          setMessage('Hold your device steady!');
+        } else if (i >= 3) {
+          textElement.classList.remove('one');
+          textElement.classList.add('two');
+          setMessage('QRmor AI is Authenticating your product!');
+        }
       }
-  
-      // Continue scanning after applying zoom
-      requestAnimationFrame(scanQRCode);
-    }, 500); // Retry after a short delay to allow zoom application
+    }, 1000);
   };
 
   useEffect(() => {
@@ -201,10 +171,10 @@ const QRScanner = () => {
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
         setIsScanning(true);
-        timer();
-        startTimeout(); // Start the 15-second timeout
+        startTimerWithMessages(); // Start the timer with messages
       } catch (err) {
-        console.error('Error initializing scanner:', err);
+        console.error('Error accessing camera:', err);
+        setMessage('Camera initialization failed. Please check camera permissions.');
       }
     };
 
@@ -214,22 +184,14 @@ const QRScanner = () => {
       const tracks = streamRef.current?.getTracks();
       tracks?.forEach(track => track.stop());
       clearInterval(timerRef.current);
-      clearTimeout(timeoutRef.current);
     };
   }, []);
 
   useEffect(() => {
-    const scanInterval = () => {
-      if (isScanning) {
-        scanQRCode(); // Call the scanQRCode function on each frame
-        requestAnimationFrame(scanInterval); // Repeat the scan on next frame
-      }
-    };
-    scanInterval(); // Start the scanning loop
-
-    return () => {
-      setIsScanning(false); // Stop scanning when the component is unmounted
-    };
+    if (isScanning) {
+      const scanInterval = setInterval(scanQRCode, 1000);
+      return () => clearInterval(scanInterval);
+    }
   }, [isScanning]);
 
   return (
@@ -238,6 +200,18 @@ const QRScanner = () => {
       <div className="scanner-container">
         <video ref={videoRef} width="100%" height="auto" autoPlay></video>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
+      </div>
+      <div className="zoom-control">
+        <label htmlFor="zoom">Zoom: </label>
+        <input
+          id="zoom"
+          type="range"
+          min="1"
+          max="3"
+          step="0.1"
+          value={zoomLevel}
+          onChange={handleZoomChange}
+        />
       </div>
     </div>
   );
