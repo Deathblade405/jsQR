@@ -84,6 +84,7 @@ const QRScanner = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          setNoLocation(false); // Location successfully retrieved
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
           console.log(
@@ -94,12 +95,12 @@ const QRScanner = () => {
           }
         },
         (error) => {
-          setNoLocation(true);
+          setNoLocation(true); // Mark location as unavailable
           setScanStatus(`Location error: ${error.message}`);
         }
       );
     } else {
-      setNoLocation(true);
+      setNoLocation(true); // Geolocation not supported
       setScanStatus('Geolocation not supported');
     }
   };
@@ -155,7 +156,6 @@ const QRScanner = () => {
     if (canvas && video) {
       const context = canvas.getContext('2d');
       if (context) {
-        // Adjust the canvas to capture the full image
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
@@ -214,7 +214,10 @@ const QRScanner = () => {
 
   return (
     <div>
-      <p className="status-message">{scannedValue || scanStatus || 'Scanning for QR code...'}</p>
+      <p className="status-message">
+        {noLocation ? 'Unable to access location. Please allow location access.' : ''}
+        {scannedValue || scanStatus || 'Scanning for QR code...'}
+      </p>
       <div className="scanner-container">
         <video ref={videoRef} width="100%" height="auto" autoPlay></video>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
