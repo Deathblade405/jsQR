@@ -8,6 +8,8 @@ const QRScanner = () => {
   const [scannedValue, setScannedValue] = useState('');
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
+  const [message, setMessage] = useState('Scan the QR code for Product Authentication');
+  const [myvariable, setMyvariable] = useState(null);
   const [qrData, setQrData] = useState(null);
   const [noLocation, setNoLocation] = useState(false);
   const [retryCount, setRetryCount] = useState(0); // Track the number of retries for blurry images
@@ -30,7 +32,7 @@ const QRScanner = () => {
 
   const zoomAndRetry = (track, capabilities, callback) => {
     setTimeout(() => {
-      if (capabilities.zoom && zoomLevelRef.current < 3) { // Cap zoom to 3 levels
+      if (capabilities && capabilities.zoom && zoomLevelRef.current < 3) { // Check if zoom capability exists
         zoomLevelRef.current += 1; // Increment zoom level
         track.applyConstraints({
           advanced: [{ zoom: zoomLevelRef.current }], // Apply new zoom level
@@ -62,11 +64,7 @@ const QRScanner = () => {
         videoRef.current.srcObject = stream;
         setIsScanning(true);
 
-        zoomAndRetry(track, capabilities, () => {
-          if (isScanning) {
-            getLocation(); // Explicitly request location at the start
-          }
-        });
+        getLocation(track, capabilities); // Explicitly request location at the start
       } catch (err) {
         console.error('Error accessing camera:', err);
         setIsScanning(false);
@@ -81,7 +79,7 @@ const QRScanner = () => {
     };
   }, []);
 
-  const getLocation = () => {
+  const getLocation = (track, capabilities) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -92,7 +90,11 @@ const QRScanner = () => {
             `Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`
           );
           if (trackRef.current && capabilitiesRef.current) {
+            timer()
             scanQRCode(trackRef.current, capabilitiesRef.current);
+            setTimeout(() => {
+              console.log("counterfeit")
+            }, 15000);
           }
         },
         (error) => {
@@ -106,8 +108,8 @@ const QRScanner = () => {
     }
   };
 
-  const scanQRCode = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const scanQRCode = (track, capabilities) => {
+    if (!videoRef.current || !canvasRef.current || !capabilities) return;
 
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -129,26 +131,40 @@ const QRScanner = () => {
     });
 
     if (code) {
-      const qrSizeThreshold = Math.min(canvas.width, canvas.height) * 0.2;
-      const qrWidth = Math.abs(code.location.bottomRightCorner.x - code.location.topLeftCorner.x);
-      const qrHeight = Math.abs(code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
-
-      if (qrWidth >= qrSizeThreshold && qrHeight >= qrSizeThreshold) {
-        setQrDetected(true);
-        setQrData(code);
-        setScanStatus(`QR Code Link: ${code.data}`);
-        captureImage();
-      } else {
-        setQrDetected(false);
-        setScanStatus('Detected partial QR code, retrying...');
-        setQrData(null);
-      }
+      captureImage();
     } else {
-      setQrDetected(false);
-      setScanStatus('No QR detected');
-      setQrData(null);
+      zoomAndRetry(track, capabilities, () => scanQRCode(track, capabilities));
     }
   };
+
+  const timer = () => {
+    var i = 0
+    const textElement = document.getElementById('text');
+    const timer = setInterval(() => {
+      if (myvariable) {
+        clearInterval(timer)
+      }
+      else {
+        ++i
+        if (i >= 9) {
+          textElement.classList.remove('three')
+          textElement.classList.add('four')
+          setMessage("You are almost there!")
+        }
+        else if (i >= 6) {
+          textElement.classList.remove('two')
+          textElement.classList.add('three')
+          setMessage("Hold your device steady!")
+        }
+        else if (i >= 3) {
+          textElement.classList.remove('one')
+          textElement.classList.add('two')
+          setMessage("QRmor AI is Authenticating your product!")
+        }
+
+      }
+    }, 1000);
+  }
 
   const captureImage = () => {
     const canvas = canvasRef.current;
@@ -180,18 +196,13 @@ const QRScanner = () => {
               setIsScanning(false); // Stop scanning on valid QR code
               setRetryCount(0); // Reset retry count after successful scan
               setTimeout(() => {
-                setIsScanning(true);
-                getLocation(); // Prompt location again after scan restarts
+                // getLocation(); // Prompt location again after scan restarts
               }, 3000); // Automatically restart scanning after 3 seconds
             } else {
+              setIsScanning(true);
               console.log('Image is blurry, retrying...');
               setRetryCount(prev => prev + 1); // Increment retry count
-              if (retryCount >= 3) {
-                setScanStatus('Image is too blurry, please try again later.');
-                setIsScanning(false); // Stop scanning after too many blurry attempts
-              } else {
-                setTimeout(captureImage, 500); // Retry capture on blur
-              }
+              captureImage()
             }
           })
           .catch((error) => {
@@ -226,9 +237,9 @@ const QRScanner = () => {
 
   return (
     <div>
+      {<p className="text one" id="text">{message}</p>}
       <p className="status-message">
         {noLocation ? 'Unable to access location. Please allow location access.' : ''}
-        {scannedValue || scanStatus || 'Scanning for QR code...'}
       </p>
       <div className="scanner-container">
         <video ref={videoRef} width="100%" height="auto" autoPlay></video>
@@ -244,17 +255,9 @@ const QRScanner = () => {
               padding: '10px',
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
               color: 'white',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              if (qrData) {
-                setScannedValue(qrData.data);
-                setIsScanning(false);
-                setTimeout(() => setIsScanning(true), 3000); // Restart scanning
-              }
             }}
           >
-            Click to Decode QR Code
+            QR Code Detected!
           </div>
         )}
       </div>
