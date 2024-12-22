@@ -9,7 +9,6 @@ const QRScanner = () => {
   const [message, setMessage] = useState('Scan the QR code for Product Authentication');
   const [scanStatus, setScanStatus] = useState('');
   const [qrDetected, setQrDetected] = useState(false);
-  const [qrData, setQrData] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [noLocation, setNoLocation] = useState(false);
   const timeoutRef = useRef(null); // Reference for 15-second timeout
@@ -24,24 +23,19 @@ const QRScanner = () => {
     let i = 0;
     const textElement = document.getElementById('text');
     timerRef.current = setInterval(() => {
-      console.log(`Timer interval: ${i}`);
       if (qrDetected) {
-        console.log('QR Detected, stopping timer');
         clearInterval(timerRef.current); // Stop the timer on QR detection
       } else {
         ++i;
         if (i >= 9) {
-          console.log('Changing message to: "You are almost there!"');
           textElement.classList.remove('three');
           textElement.classList.add('four');
           setMessage('You are almost there!');
         } else if (i >= 6) {
-          console.log('Changing message to: "Hold your device steady!"');
           textElement.classList.remove('two');
           textElement.classList.add('three');
           setMessage('Hold your device steady!');
         } else if (i >= 3) {
-          console.log('Changing message to: "QRmor AI is Authenticating your product!"');
           textElement.classList.remove('one');
           textElement.classList.add('two');
           setMessage('QRmor AI is Authenticating your product!');
@@ -62,7 +56,6 @@ const QRScanner = () => {
   };
 
   const getLocation = async () => {
-    console.log('Getting location...');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -99,6 +92,7 @@ const QRScanner = () => {
   };
 
   const scanQRCode = () => {
+    console.log('Scanning QR code...');
     if (!videoRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -110,6 +104,9 @@ const QRScanner = () => {
       console.log('Waiting for valid video dimensions...');
       return; // Exit if the video dimensions are invalid
     }
+    // else {
+    //   scanQRCode()
+    // }
 
     // Update canvas size to match video size
     canvas.width = video.videoWidth;
@@ -117,16 +114,20 @@ const QRScanner = () => {
 
     // Draw the current video frame to the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
+ 
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'both' });
+    console.log('code', code);
+    console.log('imageData', imageData);
 
     if (code) {
+      console.log('QR code detected:', code.data);
       // QR code detected
       clearTimeout(timeoutRef.current); // Stop timeout if QR is detected
       setQrDetected(true);
       setScanStatus(`QR Code Link: ${code.data}`);
-      captureImage(code.data); // Capture image and send to backend
+      captureImage(); // Capture image and send to backend
     } else {
       // No QR code detected
       setScanStatus('Scanning...');
@@ -134,13 +135,16 @@ const QRScanner = () => {
     }
   };
 
-  const captureImage = (qrData) => {
+  const captureImage = () => {
     console.log('Capturing image...');
     const canvas = canvasRef.current;
+    console.log('canvas', canvas);
     const video = videoRef.current;
+    console.log('video');
 
     if (canvas && video) {
       const context = canvas.getContext('2d');
+      console.log(context);
       if (context) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -150,7 +154,6 @@ const QRScanner = () => {
 
         const formData = new FormData();
         formData.append('image', blob, 'image.jpg');
-        formData.append('qrData', qrData); // Add QR data to form
 
         console.log('Sending image for processing...');
         axios.post('https://scinovas.in:5009/b', formData)
