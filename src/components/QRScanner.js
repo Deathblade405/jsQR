@@ -45,13 +45,12 @@ const QRScanner = () => {
   };
 
   const getBestRearCamera = async () => {
-    console.log('Getting best rear camera...');
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
     const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-    console.log(`Found rear cameras: ${rearCameras.length ? rearCameras[0].label : 'None'}`);
+    
     return rearCameras.length ? rearCameras[0] : videoDevices[0];
   };
 
@@ -59,12 +58,12 @@ const QRScanner = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          console.log(`Location retrieved: Latitude ${position.coords.latitude}, Longitude ${position.coords.longitude}`);
+          
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
           timer();
           scanQRCode();
-          startTimeout();
+          //startTimeout();
         },
         () => {
           setNoLocation(true);
@@ -94,47 +93,48 @@ const QRScanner = () => {
   const scanQRCode = () => {
     console.log('Scanning QR code...');
     if (!videoRef.current || !canvasRef.current) return;
-
+  
+    const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-    const video = videoRef.current;
-
-    // Check if video dimensions are available and non-zero
+  
+    // Ensure the video feed has valid dimensions
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.log('Waiting for valid video dimensions...');
-      return; // Exit if the video dimensions are invalid
+      console.log('Video dimensions not available yet, retrying...');
+      requestAnimationFrame(scanQRCode); // Retry until video dimensions are ready
+      return;
     }
-    // else {
-    //   scanQRCode()
-    // }
-
-    // Update canvas size to match video size
+  
+    // Update canvas size to match the video feed
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
+  
     // Draw the current video frame to the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
- 
-
+  
+    // Extract image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  
+    // Attempt to decode the QR code using jsQR
     const code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'both' });
-    console.log('code', code);
-    console.log('imageData', imageData);
-
+  
     if (code) {
       console.log('QR code detected:', code.data);
-      // QR code detected
-      clearTimeout(timeoutRef.current); // Stop timeout if QR is detected
+  
+      // Stop the scanning process
       setQrDetected(true);
+      clearTimeout(timeoutRef.current);
+  
+      // Update the status and capture the image
       setScanStatus(`QR Code Link: ${code.data}`);
-      captureImage(); // Capture image and send to backend
+      captureImage(); // Send the image and code to the backend
     } else {
-      // No QR code detected
+      // If no QR code is detected, continue scanning
       setScanStatus('Scanning...');
-      zoomAndRetry();
+      requestAnimationFrame(scanQRCode); // Keep scanning on the next animation frame
     }
   };
-
+  
   const captureImage = () => {
     console.log('Capturing image...');
     const canvas = canvasRef.current;
