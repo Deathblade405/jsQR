@@ -4,35 +4,30 @@ import './ResultPage.css';
 
 const ResultPage = () => {
   const [productStatus, setProductStatus] = useState(null);  // To hold the product status
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check session storage for the result passed from QRScanner
+    // Retrieve result and location from session storage
     const result = sessionStorage.getItem('result');
 
-    // If there's no result or it's not defined, redirect to QRScanner page
-    if (!result) {
-      navigate('/');
+
+    if (result === 'true') {
+      setProductStatus('This product is genuine!');
     } else {
-      // Set the product status based on the result
-      if (result.toLowerCase() === 'true') {
-        setProductStatus('This product is genuine!');
-      } else {
-        setProductStatus('This product is counterfeit!');
-      }
+      setProductStatus('This product is counterfeit!');
     }
-  }, [navigate]);
+
+    // Optional: Send data to backend if needed
+    // axios.post('<BACKEND_API>', { result, latitude: lat, longitude: long })
+    //   .then(response => console.log(response.data))
+    //   .catch(error => console.error('Error sending data to backend:', error));
+  }, []);
 
   return (
     <div className="result-container">
       <h2>Product Authentication Result</h2>
-      {productStatus ? (
-        <div className={`status-message ${productStatus.toLowerCase().includes('genuine') ? 'genuine' : 'counterfeit'}`}>
-          <h3>{productStatus}</h3>
-        </div>
-      ) : (
-        <p>Loading result...</p>
-      )}
+      <h3>{productStatus}</h3>
     </div>
   );
 };
