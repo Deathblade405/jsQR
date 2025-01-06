@@ -210,7 +210,7 @@ const QRScanner = () => {
       try {
         const bestCamera = await getBestRearCamera();
         console.log('Using Camera:', bestCamera.label);  // Add this line to show the camera's label in console
-        alert('Using Camera: ' + bestCamera.label);  // Add this line to alert the camera's label
+        alert('Using Camera: ' + bestCamera.label + '\n' + 'Device Info: ' + navigator.userAgent);  // Alert the camera label and device info
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
