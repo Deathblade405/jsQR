@@ -205,29 +205,32 @@ const QRScanner = () => {
     }
   };
 
-  useEffect(() => {
-    const getDeviceDetails = () => {
-      const userAgent = navigator.userAgent;
-      let deviceDetails = 'Unknown Device';
-      if (userAgent.includes('Android')) {
-        const match = userAgent.match(/Android\s([0-9\.]+).*?(\b[A-Za-z0-9]+)(?:\s|\b)/);
-        if (match) {
-          deviceDetails = `Android Device: ${match[2]}, OS: Android ${match[1]}`;
-        }
-      } else if (userAgent.includes('iPhone')) {
-        deviceDetails = `iPhone: ${userAgent}`;
-      } else if (userAgent.includes('iPad')) {
-        deviceDetails = `iPad: ${userAgent}`;
-      } else if (userAgent.includes('Mac')) {
-        deviceDetails = `Mac: ${userAgent}`;
+  const getDeviceDetails = () => {
+    const userAgent = navigator.userAgent;
+    let deviceDetails = 'Unknown Device';
+    if (userAgent.includes('Android')) {
+      const match = userAgent.match(/Android\s([0-9\.]+).*?(\b[A-Za-z0-9]+)(?:\s|\b)/);
+      if (match) {
+        deviceDetails = `Android Device: ${match[2]}, OS: Android ${match[1]}`;
       }
+    } else if (userAgent.includes('iPhone')) {
+      deviceDetails = `iPhone: ${userAgent}`;
+    } else if (userAgent.includes('iPad')) {
+      deviceDetails = `iPad: ${userAgent}`;
+    } else if (userAgent.includes('Mac')) {
+      deviceDetails = `Mac: ${userAgent}`;
+    }
 
-      alert(`Using camera: ${deviceDetails}`);
-    };
+    return deviceDetails;
+  };
 
+  useEffect(() => {
     const initScanner = async () => {
       try {
         const bestCamera = await getBestRearCamera();
+        console.log('Using Camera:', bestCamera.label);  // Add this line to show the camera's label in console
+        alert(`Using Camera: ${bestCamera.label}, Device Info: ${getDeviceDetails()}`);  // Add this line to alert the camera's label
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             deviceId: bestCamera.deviceId,
@@ -241,7 +244,6 @@ const QRScanner = () => {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           setIsScanning(true);
-          getDeviceDetails();  // Notify device and camera info
           getLocation();
         };
       } catch (err) {
