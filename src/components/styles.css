@@ -23,14 +23,16 @@
 video {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensures video fits within the container */
+  object-fit: cover;
+  margin: 0; 
+  padding: 0;/* Ensures video fits within the container */
   border-radius: 8px;
   z-index: 1;
 }
 
 /* Status Text */
 .text{
-  margin-top: 18vh; /* Space between video and text */
+  margin-top: 14vh; /* Space between video and text */
   font-size: 1.5rem; /* Larger font size for better visibility */ /* Dark green text color */
   text-align: center; /* Center text */
 }

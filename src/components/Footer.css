@@ -12,6 +12,11 @@
   font-size: 14px;
   color: #0f3d3c; /* Dark green text */
   font-weight: bold;
+  line-height: 1.2; /* Adjust line height to reduce space between text */
+}
+
+.footer p {
+  margin: 0; /* Remove additional spacing between paragraphs */
 }
 
 a {

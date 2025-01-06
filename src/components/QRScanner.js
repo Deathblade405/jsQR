@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom'; // Import useLocation
 import jsQR from 'jsqr';
 import axios from 'axios';
 import './styles.css';
-import { useNavigate } from 'react-router-dom';
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -14,10 +14,21 @@ const QRScanner = () => {
   const timeoutRef = useRef(null); // Reference for 15-second timeout
   const timerRef = useRef(null); // Reference for timer
   const navigate = useNavigate(); // For navigation to result page
-
+  const location = useLocation(); // Hook for query parameters
+  
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+
+  useEffect(() => {
+    // Extract query parameters
+    const params = new URLSearchParams(location.search);
+    const aParam = params.get('a');
+    if (aParam) {
+      const id = `QRmor${aParam}`;
+      sessionStorage.setItem('id', id); // Save the constructed ID to sessionStorage
+    }
+  }, [location]);
 
   const timer = () => {
     let i = 0;
@@ -44,13 +55,47 @@ const QRScanner = () => {
     }, 1000);
   };
 
+  const fetchPublicIP = () => {
+    axios.get('https://api.ipify.org?format=json')
+      .then((response) => {
+        const publicIP = response.data.ip;
+        fetchLocation(publicIP);
+      })
+      .catch((error) => {
+        console.error('Error fetching public IP:', error);
+      });
+  };
+
+  const fetchLocation = (ip) => {
+    const id = sessionStorage.getItem('id');
+    const latitude = sessionStorage.getItem('latitude');
+    const longitude = sessionStorage.getItem('longitude');
+    const result = sessionStorage.getItem('result') === 'true' ? 1 : 0;
+
+    axios.get(`https://auth.scinovas.com:5004/counter/${id}`)
+      .then((response) => {
+        const count = response.data[0] + 1;
+        axios.get(`https://auth.scinovas.com:5004/latlon/${id}/${latitude}/${longitude}/${ip}/${result}/${count}`)
+          .then(() => {
+            navigate('/result');
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+            alert('Database Connectivity Failed');
+          });
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        alert('Database Connectivity Failed');
+      });
+  };
+
   const getBestRearCamera = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
     const rearCameras = videoDevices.filter(device =>
       device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
     );
-    
     return rearCameras.length ? rearCameras[0] : videoDevices[0];
   };
 
@@ -58,125 +103,83 @@ const QRScanner = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
           timer();
           scanQRCode();
-          //startTimeout();
+          startTimeout();
         },
         () => {
           setNoLocation(true);
-          console.log('Location error: Geolocation not available');
         }
       );
     } else {
       setNoLocation(true);
-      console.log('Geolocation not supported in this browser');
     }
   };
 
   const startTimeout = () => {
-    console.log('Starting 15-second timeout...');
     timeoutRef.current = setTimeout(() => {
       if (!qrDetected) {
-        console.log('QR code not detected within 15 seconds');
-        setMessage('QR code not detected within 15 seconds. Counterfeit suspected.');
         clearInterval(timerRef.current); // Stop the timer
         setIsScanning(false); // Stop scanning
         sessionStorage.setItem('result', 'false'); // Set result as counterfeit
-        navigate('/result'); // Redirect to result page
+        fetchPublicIP(); // Trigger fetchPublicIP after timeout
       }
     }, 15000); // 15 seconds
   };
 
   const scanQRCode = () => {
-    console.log('Scanning QR code...');
     if (!videoRef.current || !canvasRef.current) return;
-  
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-  
-    // Ensure the video feed has valid dimensions
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.log('Video dimensions not available yet, retrying...');
-      requestAnimationFrame(scanQRCode); // Retry until video dimensions are ready
+      requestAnimationFrame(scanQRCode);
       return;
     }
-  
-    // Update canvas size to match the video feed
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-  
-    // Draw the current video frame to the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-    // Extract image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  
-    // Attempt to decode the QR code using jsQR
     const code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'both' });
-  
     if (code) {
-      console.log('QR code detected:', code.data);
-  
-      // Stop the scanning process
       setQrDetected(true);
       clearTimeout(timeoutRef.current);
-  
-      // Update the status and capture the image
       setScanStatus(`QR Code Link: ${code.data}`);
-      captureImage(); // Send the image and code to the backend
+      captureImage();
+      fetchPublicIP(); // Trigger fetchPublicIP after QR code detection
     } else {
-      // If no QR code is detected, continue scanning
       setScanStatus('Scanning...');
-      requestAnimationFrame(scanQRCode); // Keep scanning on the next animation frame
+      requestAnimationFrame(scanQRCode);
     }
   };
-  
-  const captureImage = () => {
-    console.log('Capturing image...');
-    const canvas = canvasRef.current;
-    console.log('canvas', canvas);
-    const video = videoRef.current;
-    console.log('video');
 
+  const captureImage = () => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
     if (canvas && video) {
       const context = canvas.getContext('2d');
-      console.log(context);
       if (context) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const blob = dataURLtoBlob(canvas.toDataURL('image/png'));
-
         const formData = new FormData();
         formData.append('image', blob, 'image.jpg');
-
-        console.log('Sending image for processing...');
         axios.post('https://scinovas.in:5009/b', formData)
           .then((response) => {
-            console.log('Image sent successfully, response:', response.data);
-            if (response.data.result === 'true') {
-              sessionStorage.setItem('result', 'true'); // Genuine product
-            } else {
-              sessionStorage.setItem('result', 'false'); // Counterfeit product
-            }
-            navigate('/result'); // Redirect to result page
+            sessionStorage.setItem('result', response.data.result === 'true' ? 'true' : 'false');
+            fetchPublicIP(); // Trigger fetchPublicIP after image processing
           })
           .catch((error) => {
             console.error('Error sending image:', error);
-            sessionStorage.setItem('result', 'false'); // In case of error, assume counterfeit
-            navigate('/result');
           });
       }
     }
   };
 
   const dataURLtoBlob = (dataURL) => {
-    console.log('Converting data URL to Blob...');
     const byteString = atob(dataURL.split(',')[1]);
     const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
     const buffer = new ArrayBuffer(byteString.length);
@@ -188,21 +191,18 @@ const QRScanner = () => {
   };
 
   const zoomAndRetry = () => {
-    // Check if zoom level needs to be increased
+    console.log('Zooming in...');
     const track = streamRef.current.getVideoTracks()[0];
     const capabilities = track.getCapabilities();
     if (capabilities.zoom && zoomLevel < 3) {
-      console.log(`Zoom level before: ${zoomLevel}`);
       setZoomLevel(prevZoom => {
-        const newZoom = prevZoom + 1;
-        console.log(`Applying zoom: ${newZoom}`);
+        const newZoom = prevZoom + 0.5;
         track.applyConstraints({
           advanced: [{ zoom: newZoom }],
         });
         return newZoom;
       });
     }
-    // Do not call scanQRCode here, just wait for the next scanning cycle
   };
 
   useEffect(() => {
@@ -220,12 +220,9 @@ const QRScanner = () => {
 
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
-
-        // Wait until the video metadata is loaded
         videoRef.current.onloadedmetadata = () => {
-          // Now the video has valid dimensions
           setIsScanning(true);
-          getLocation(); // Get location before scanning
+          getLocation();
         };
       } catch (err) {
         console.error('Error initializing scanner:', err);
@@ -233,7 +230,6 @@ const QRScanner = () => {
     };
 
     initScanner();
-
     return () => {
       const tracks = streamRef.current?.getTracks();
       tracks?.forEach(track => track.stop());

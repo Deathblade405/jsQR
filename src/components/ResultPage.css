@@ -6,26 +6,101 @@
   min-height: 100vh;
   background-color: #f4f4f4;
   padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
 h2 {
   font-size: 2rem;
   margin-bottom: 20px;
+  color: #333;
 }
 
-.status-message {
+h3 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+.details-container {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 20px;
   padding: 20px;
   border-radius: 10px;
-  font-size: 1.5rem;
+  background-color: #ffffff;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.details-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.details-container th,
+.details-container td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.details-container th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+.details-container tr:hover {
+  background-color: #f9f9f9;
+}
+
+.details-container td {
+  font-size: 1rem;
+  color: #333;
+}
+
+.details-container p {
   text-align: center;
+  font-size: 1.2rem;
+  color: #999;
+  margin-top: 20px;
+}
+
+/* Status message below the table */
+.status-message {
+  padding: 5px;
+  border-radius: 10px;
+  font-size: 1.9rem;
+  text-align: center;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 600px;
 }
 
 .status-message.genuine {
-  background-color: #4caf50; /* Green for genuine */
-  color: white;
+  background-color: #4caf4f93; /* Green for genuine */
+  color: rgb(4, 58, 4);
 }
 
 .status-message.counterfeit {
-  background-color: #f44336; /* Red for counterfeit */
-  color: white;
+  background-color: #f443367f; /* Red for counterfeit */
+  color: rgb(50, 4, 4);
+}
+
+@media (max-width: 600px) {
+  .details-container {
+    padding: 10px;
+  }
+
+  .status-message {
+    font-size: 1.2rem;
+    padding: 5px;
+  }
+
+  .details-container th,
+  .details-container td {
+    padding: 8px;
+  }
+
+  .details-container td {
+    font-size: 0.9rem;
+  }
 }

@@ -2,6 +2,7 @@
   "name": "qrscan",
   "version": "0.1.0",
   "private": true,
+ 
   "dependencies": {
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs": "^4.22.0",
