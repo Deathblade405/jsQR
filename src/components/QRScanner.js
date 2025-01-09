@@ -173,24 +173,32 @@ const QRScanner = () => {
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 0.5;
         track.applyConstraints({
-          advanced: [{ zoom: newZoom }],
+          advanced: [{ zoom: newZoom }], 
         });
         return newZoom;
       });
     }
   };
 
-  // Use MobileDetect to get device details
   const getDeviceDetails = () => {
     const md = new MobileDetect(window.navigator.userAgent);
     let deviceDetails = 'Unknown Device';
 
     if (md.mobile()) {
-      deviceDetails = `Mobile Device: ${md.mobile()}, OS: ${md.os()} Version: ${md.version()}`;
+      const mobile = md.mobile();
+      const os = md.os();
+      const version = md.version();
+      deviceDetails = `Mobile Device: ${mobile}, OS: ${os} Version: ${version ? version : 'Unknown'}`;
     } else if (md.tablet()) {
-      deviceDetails = `Tablet Device: ${md.tablet()}, OS: ${md.os()} Version: ${md.version()}`;
+      const tablet = md.tablet();
+      const os = md.os();
+      const version = md.version();
+      deviceDetails = `Tablet Device: ${tablet}, OS: ${os} Version: ${version ? version : 'Unknown'}`;
     } else if (md.phone()) {
-      deviceDetails = `Phone Device: ${md.phone()}, OS: ${md.os()} Version: ${md.version()}`;
+      const phone = md.phone();
+      const os = md.os();
+      const version = md.version();
+      deviceDetails = `Phone Device: ${phone}, OS: ${os} Version: ${version ? version : 'Unknown'}`;
     } else {
       deviceDetails = `Non-Mobile Device: ${md.userAgent()}`;
     }
@@ -203,8 +211,7 @@ const QRScanner = () => {
       try {
         const bestCamera = await getBestRearCamera();
         console.log('Using Camera:', bestCamera.label);  // Add this line to show the camera's label in console
-        const deviceDetails = getDeviceDetails();  // Get device details
-        alert(`Using Camera: ${bestCamera.label}, Device Info: ${deviceDetails}`);  // Show alert with camera and device info
+        alert(`Using Camera: ${bestCamera.label}, Device Info: ${getDeviceDetails()}`);  // Add this line to alert the camera's label
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
