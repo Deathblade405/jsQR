@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'; // Import useLocati
 import jsQR from 'jsqr';
 import axios from 'axios';
 import MobileDetect from 'mobile-detect';  // Import mobile-detect library
+import { isMobile, isTablet, isAndroid, isIOS, osName } from 'react-device-detect';  // Import react-device-detect functions
 import './styles.css';
 
 const QRScanner = () => {
@@ -181,26 +182,14 @@ const QRScanner = () => {
   };
 
   const getDeviceDetails = () => {
-    const md = new MobileDetect(window.navigator.userAgent);
     let deviceDetails = 'Unknown Device';
 
-    if (md.mobile()) {
-      const mobile = md.mobile();
-      const os = md.os();
-      const version = md.version();
-      deviceDetails = `Mobile Device: ${mobile}, OS: ${os} Version: ${version ? version : 'Unknown'}`;
-    } else if (md.tablet()) {
-      const tablet = md.tablet();
-      const os = md.os();
-      const version = md.version();
-      deviceDetails = `Tablet Device: ${tablet}, OS: ${os} Version: ${version ? version : 'Unknown'}`;
-    } else if (md.phone()) {
-      const phone = md.phone();
-      const os = md.os();
-      const version = md.version();
-      deviceDetails = `Phone Device: ${phone}, OS: ${os} Version: ${version ? version : 'Unknown'}`;
+    if (isMobile) {
+      deviceDetails = `Mobile Device: ${isMobile ? 'Yes' : 'No'}, OS: ${osName}, Android: ${isAndroid ? 'Yes' : 'No'}, iOS: ${isIOS ? 'Yes' : 'No'}`;
+    } else if (isTablet) {
+      deviceDetails = `Tablet Device: ${isTablet ? 'Yes' : 'No'}, OS: ${osName}`;
     } else {
-      deviceDetails = `Non-Mobile Device: ${md.userAgent()}`;
+      deviceDetails = `Non-Mobile Device: ${navigator.userAgent}`;
     }
 
     return deviceDetails;
@@ -249,6 +238,8 @@ const QRScanner = () => {
         <video ref={videoRef} width="100%" height="auto" autoPlay></video>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
+      {/* Display device info */}
+      <p>Device Info: {getDeviceDetails()}</p>
     </div>
   );
 };
