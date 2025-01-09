@@ -30,31 +30,6 @@ const QRScanner = () => {
     }
   }, [location]);
 
-  const timer = () => {
-    let i = 0;
-    const textElement = document.getElementById('text');
-    timerRef.current = setInterval(() => {
-      if (qrDetected) {
-        clearInterval(timerRef.current); // Stop the timer on QR detection
-      } else {
-        ++i;
-        if (i >= 9) {
-          textElement.classList.remove('three');
-          textElement.classList.add('four');
-          setMessage('You are almost there!');
-        } else if (i >= 6) {
-          textElement.classList.remove('two');
-          textElement.classList.add('three');
-          setMessage('Hold your device steady!');
-        } else if (i >= 3) {
-          textElement.classList.remove('one');
-          textElement.classList.add('two');
-          setMessage('QRmor AI is Authenticating your product!');
-        }
-      }
-    }, 1000);
-  };
-
   const fetchPublicIP = () => {
     axios.get('https://api.ipify.org?format=json')
       .then((response) => {
@@ -105,7 +80,7 @@ const QRScanner = () => {
         (position) => {
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
-          timer();
+          // timer();
           scanQRCode();
           startTimeout();
         },
@@ -208,17 +183,28 @@ const QRScanner = () => {
   const getDeviceDetails = () => {
     const userAgent = navigator.userAgent;
     let deviceDetails = 'Unknown Device';
+    
+    // Android device detection
     if (userAgent.includes('Android')) {
       const match = userAgent.match(/Android\s([0-9\.]+).*?(\b[A-Za-z0-9]+)(?:\s|\b)/);
       if (match) {
         deviceDetails = `Android Device: ${match[2]}, OS: Android ${match[1]}`;
       }
-    } else if (userAgent.includes('iPhone')) {
+    } 
+    // iPhone/iPad detection
+    else if (userAgent.includes('iPhone')) {
       deviceDetails = `iPhone: ${userAgent}`;
-    } else if (userAgent.includes('iPad')) {
+    } 
+    else if (userAgent.includes('iPad')) {
       deviceDetails = `iPad: ${userAgent}`;
-    } else if (userAgent.includes('Mac')) {
+    } 
+    // MacOS detection
+    else if (userAgent.includes('Mac')) {
       deviceDetails = `Mac: ${userAgent}`;
+    } 
+    // Other devices
+    else if (userAgent.includes('Windows')) {
+      deviceDetails = `Windows Device: ${userAgent}`;
     }
 
     return deviceDetails;
