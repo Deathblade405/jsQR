@@ -81,6 +81,7 @@ const QRScanner = () => {
         (position) => {
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
+          // timer();
           scanQRCode();
           startTimeout();
         },
@@ -173,7 +174,7 @@ const QRScanner = () => {
       setZoomLevel(prevZoom => {
         const newZoom = prevZoom + 0.5;
         track.applyConstraints({
-          advanced: [{ zoom: newZoom }],
+          advanced: [{ zoom: newZoom }], 
         });
         return newZoom;
       });
@@ -190,10 +191,7 @@ const QRScanner = () => {
       try {
         const bestCamera = await getBestRearCamera();
         console.log('Using Camera:', bestCamera.label);  // Add this line to show the camera's label in console
-
-        // Show alert with device details
-        const deviceDetails = getDeviceDetails(); // Get device details using mobile-device-detect
-        alert(`You are using: ${deviceDetails}`);  // Show the device details in an alert
+        alert(`Using Camera: ${bestCamera.label}, Device Info: ${getDeviceDetails()}`);  // Add this line to alert the camera's label and device details
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
