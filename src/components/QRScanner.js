@@ -3,9 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'; // Import useLocati
 import jsQR from 'jsqr';
 import axios from 'axios';
 import './styles.css';
-
-// Import mobile-device-detect library
-import { detect } from 'mobile-device-detect';
+import { detect } from 'mobile-device-detect'; // Import mobile-device-detect
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -83,7 +81,6 @@ const QRScanner = () => {
         (position) => {
           sessionStorage.setItem('latitude', position.coords.latitude.toString());
           sessionStorage.setItem('longitude', position.coords.longitude.toString());
-          // timer();
           scanQRCode();
           startTimeout();
         },
@@ -183,25 +180,9 @@ const QRScanner = () => {
     }
   };
 
-  // Updated getDeviceDetails function using mobile-device-detect
   const getDeviceDetails = () => {
-    const deviceInfo = detect();  // Get device details using the mobile-device-detect library
-
-    let deviceDetails = `Device: ${deviceInfo.deviceType}, `;
-    if (deviceInfo.os) {
-      deviceDetails += `OS: ${deviceInfo.os}, `;
-    }
-    if (deviceInfo.osVersion) {
-      deviceDetails += `OS Version: ${deviceInfo.osVersion}, `;
-    }
-    if (deviceInfo.manufacturer) {
-      deviceDetails += `Manufacturer: ${deviceInfo.manufacturer}, `;
-    }
-    if (deviceInfo.model) {
-      deviceDetails += `Model: ${deviceInfo.model}`;
-    }
-
-    return deviceDetails || 'Unknown Device';
+    const device = detect();
+    return `${device.model} - ${device.os} (${device.vendor})`;
   };
 
   useEffect(() => {
@@ -209,7 +190,10 @@ const QRScanner = () => {
       try {
         const bestCamera = await getBestRearCamera();
         console.log('Using Camera:', bestCamera.label);  // Add this line to show the camera's label in console
-        alert(`Using Camera: ${bestCamera.label}, Device Info: ${getDeviceDetails()}`);  // Add this line to alert the camera's label
+
+        // Show alert with device details
+        const deviceDetails = getDeviceDetails(); // Get device details using mobile-device-detect
+        alert(`You are using: ${deviceDetails}`);  // Show the device details in an alert
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
