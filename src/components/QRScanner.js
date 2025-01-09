@@ -4,6 +4,9 @@ import jsQR from 'jsqr';
 import axios from 'axios';
 import './styles.css';
 
+// Import mobile-device-detect library
+import { detect } from 'mobile-device-detect';
+
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [message, setMessage] = useState('Scan the QR code for Product Authentication');
@@ -180,34 +183,25 @@ const QRScanner = () => {
     }
   };
 
+  // Updated getDeviceDetails function using mobile-device-detect
   const getDeviceDetails = () => {
-    const userAgent = navigator.userAgent;
-    let deviceDetails = 'Unknown Device';
-    
-    // Android device detection
-    if (userAgent.includes('Android')) {
-      const match = userAgent.match(/Android\s([0-9\.]+).*?(\b[A-Za-z0-9]+)(?:\s|\b)/);
-      if (match) {
-        deviceDetails = `Android Device: ${match[2]}, OS: Android ${match[1]}`;
-      }
-    } 
-    // iPhone/iPad detection
-    else if (userAgent.includes('iPhone')) {
-      deviceDetails = `iPhone: ${userAgent}`;
-    } 
-    else if (userAgent.includes('iPad')) {
-      deviceDetails = `iPad: ${userAgent}`;
-    } 
-    // MacOS detection
-    else if (userAgent.includes('Mac')) {
-      deviceDetails = `Mac: ${userAgent}`;
-    } 
-    // Other devices
-    else if (userAgent.includes('Windows')) {
-      deviceDetails = `Windows Device: ${userAgent}`;
+    const deviceInfo = detect();  // Get device details using the mobile-device-detect library
+
+    let deviceDetails = `Device: ${deviceInfo.deviceType}, `;
+    if (deviceInfo.os) {
+      deviceDetails += `OS: ${deviceInfo.os}, `;
+    }
+    if (deviceInfo.osVersion) {
+      deviceDetails += `OS Version: ${deviceInfo.osVersion}, `;
+    }
+    if (deviceInfo.manufacturer) {
+      deviceDetails += `Manufacturer: ${deviceInfo.manufacturer}, `;
+    }
+    if (deviceInfo.model) {
+      deviceDetails += `Model: ${deviceInfo.model}`;
     }
 
-    return deviceDetails;
+    return deviceDetails || 'Unknown Device';
   };
 
   useEffect(() => {
