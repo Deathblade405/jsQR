@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom'; // Import useLocation
 import jsQR from 'jsqr';
 import axios from 'axios';
+import MobileDetect from 'mobile-detect';  // Import mobile-detect library
 import './styles.css';
-import { detect } from 'mobile-device-detect'; // Import mobile-device-detect
 
 const QRScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -180,9 +180,22 @@ const QRScanner = () => {
     }
   };
 
+  // Use MobileDetect to get device details
   const getDeviceDetails = () => {
-    const device = detect();
-    return `${device.model} - ${device.os} (${device.vendor})`;
+    const md = new MobileDetect(window.navigator.userAgent);
+    let deviceDetails = 'Unknown Device';
+
+    if (md.mobile()) {
+      deviceDetails = `Mobile Device: ${md.mobile()}, OS: ${md.os()} Version: ${md.version()}`;
+    } else if (md.tablet()) {
+      deviceDetails = `Tablet Device: ${md.tablet()}, OS: ${md.os()} Version: ${md.version()}`;
+    } else if (md.phone()) {
+      deviceDetails = `Phone Device: ${md.phone()}, OS: ${md.os()} Version: ${md.version()}`;
+    } else {
+      deviceDetails = `Non-Mobile Device: ${md.userAgent()}`;
+    }
+
+    return deviceDetails;
   };
 
   useEffect(() => {
@@ -190,9 +203,8 @@ const QRScanner = () => {
       try {
         const bestCamera = await getBestRearCamera();
         console.log('Using Camera:', bestCamera.label);  // Add this line to show the camera's label in console
-        
-        // Show the alert after the camera is initialized
-        alert(`Using Camera: ${bestCamera.label}, Device Info: ${getDeviceDetails()}`);  // Add this line to alert the camera's label and device details
+        const deviceDetails = getDeviceDetails();  // Get device details
+        alert(`Using Camera: ${bestCamera.label}, Device Info: ${deviceDetails}`);  // Show alert with camera and device info
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {

@@ -11,6 +11,7 @@
     "axios": "^1.7.9",
     "file-saver": "^2.0.5",
     "jsqr": "^1.4.0",
+    "mobile-detect": "^1.4.5",
     "mobile-device-detect": "^0.4.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
